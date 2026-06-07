@@ -1,5 +1,5 @@
 {
-  "name": "codesec",
+  "name": "codeSec",
   "displayName": "CodeSec — AI Code Quality",
   "description": "Real-time code quality, security analysis, and AI-powered fixes. Works with Ollama, Groq, HuggingFace, and more.",
   "version": "0.1.0",
