@@ -1,0 +1,7 @@
+out/
+node_modules/
+*.vsix
+.env
+*.js.map
+.DS_Store
+.codesec-summaries.json

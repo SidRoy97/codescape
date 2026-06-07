@@ -1,28 +1,38 @@
 {
   "name": "codesec",
   "displayName": "CodeSec — AI Code Quality",
-  "description": "Real-time code quality, security, AI-powered fixes, and smart context generation for AI assistants.",
+  "description": "Real-time code quality, security analysis, and AI-powered fixes. Works with Ollama, Groq, HuggingFace, and more.",
   "version": "0.1.0",
   "publisher": "your-publisher-id",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SidRoy97/codesec.git"
+  },
+  "homepage": "https://github.com/SidRoy97/codesec",
+  "bugs": {
+    "url": "https://github.com/SidRoy97/codesec/issues"
+  },
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Linters", "Other"],
   "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
+  "icon": "media/icon.png",
   "contributes": {
     "commands": [
-      { "command": "codeSec.analyzeFile",        "title": "CodeSec: Analyze Current File" },
-      { "command": "codeSec.analyzeWorkspace",   "title": "CodeSec: Analyze Entire Workspace" },
-      { "command": "codeSec.clearIssues",        "title": "CodeSec: Clear All Issues" },
-      { "command": "codeSec.openDashboard",      "title": "CodeSec: Open Dashboard" },
-      { "command": "codeSec.generateConfig",     "title": "CodeSec: Generate .codesec.json" },
-      { "command": "codeSec.fixWithAi",          "title": "CodeSec: Fix with AI" },
-      { "command": "codeSec.explainIssue",       "title": "CodeSec: Explain this Issue" },
-      { "command": "codeSec.buildSymbolIndex",   "title": "CodeSec: Build Symbol Index" },
-      { "command": "codeSec.copyAiContext",      "title": "CodeSec: Copy AI Context for Selected Symbol" },
-      { "command": "codeSec.copyLightContext",   "title": "CodeSec: Copy Light Context (Summaries Only)" },
-      { "command": "codeSec.showBlastRadius",    "title": "CodeSec: Show Blast Radius for Current File" },
-      { "command": "codeSec.generateAiContext", "title": "CodeSec: Generate AI Context File (AGENTS.md)" },
-      { "command": "codeSec.summarizeFiles",     "title": "CodeSec: Summarize Project Files" }
+      { "command": "codeSec.analyzeFile",      "title": "CodeSec: Analyze Current File" },
+      { "command": "codeSec.analyzeWorkspace", "title": "CodeSec: Analyze Entire Workspace" },
+      { "command": "codeSec.clearIssues",      "title": "CodeSec: Clear All Issues" },
+      { "command": "codeSec.openDashboard",    "title": "CodeSec: Open Dashboard" },
+      { "command": "codeSec.generateConfig",   "title": "CodeSec: Generate .codesec.json" },
+      { "command": "codeSec.fixWithAi",        "title": "CodeSec: Fix with AI" },
+      { "command": "codeSec.explainIssue",     "title": "CodeSec: Explain this Issue" },
+      { "command": "codeSec.buildSymbolIndex", "title": "CodeSec: Build Symbol Index" },
+      { "command": "codeSec.copyAiContext",    "title": "CodeSec: Copy AI Context for Selected Symbol" },
+      { "command": "codeSec.copyLightContext", "title": "CodeSec: Copy Light Context (Summaries Only)" },
+      { "command": "codeSec.showBlastRadius",  "title": "CodeSec: Show Blast Radius for Current File" },
+      { "command": "codeSec.generateAiContext","title": "CodeSec: Generate AI Context File (AGENTS.md)" },
+      { "command": "codeSec.summarizeFiles",   "title": "CodeSec: Summarize Project Files" }
     ],
     "configuration": {
       "title": "CodeSec",
@@ -39,19 +49,19 @@
             "openai-compatible"
           ],
           "enumDescriptions": [
-            "Local models via Ollama — 100% free, no account, no key, runs on your machine",
-            "Groq cloud — free account, no credit card, extremely fast inference",
-            "Hugging Face Inference API — free account, no credit card, huge model selection",
-            "OpenRouter — free tier models, free account needed",
+            "Local models via Ollama — 100% free, no account, no key",
+            "Groq cloud — free account, no credit card, very fast",
+            "Hugging Face Inference API — free account, huge model selection",
+            "OpenRouter — free tier models available",
             "Anthropic Claude — paid API key required",
-            "Any OpenAI-compatible server (LM Studio, vLLM, llama.cpp, Together AI)"
+            "Any OpenAI-compatible server (LM Studio, vLLM, llama.cpp)"
           ],
-          "markdownDescription": "Which AI backend to use.\n\n**Free with no credit card:** `ollama` (no account), `groq` (free account), `huggingface` (free account)"
+          "markdownDescription": "Which AI backend to use.\n\n**Free options:** `ollama` (no account), `groq` (free account), `huggingface` (free account)"
         },
         "codeSec.aiModel": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Model to use. Leave blank for the recommended default per provider.\n\n**Ollama:** `qwen2.5-coder:7b` `codellama` `llama3.2`\n\n**Groq:** `qwen-2.5-coder-32b` `llama-3.3-70b-versatile`\n\n**HuggingFace:** `Qwen/Qwen2.5-Coder-7B-Instruct`"
+          "markdownDescription": "Model name. Leave blank for the recommended default.\n\n**Ollama:** `qwen2.5-coder:7b` `llama3.2` `codellama`\n\n**Groq:** `qwen-2.5-coder-32b` `llama-3.3-70b-versatile`\n\n**HuggingFace:** `Qwen/Qwen2.5-Coder-7B-Instruct`"
         },
         "codeSec.aiApiKey": {
           "type": "string",
@@ -89,17 +99,17 @@
           "description": "Minimum number of identical lines to flag as a duplicate block."
         },
         "codeSec.languages": {
-        "type": "array",
-        "default": [
-          "javascript",
-          "javascriptreact",
-          "typescript",
-          "typescriptreact",
-          "python",
-          "java"
-        ],
-        "description": "List of language IDs to analyze."
-      }
+          "type": "array",
+          "default": [
+            "javascript",
+            "javascriptreact",
+            "typescript",
+            "typescriptreact",
+            "python",
+            "java"
+          ],
+          "description": "List of language IDs to analyze."
+        }
       }
     },
     "viewsContainers": {
@@ -122,9 +132,9 @@
     },
     "menus": {
       "editor/context": [
-        { "command": "codeSec.analyzeFile",    "group": "codeSec@1" },
-        { "command": "codeSec.copyAiContext",  "group": "codeSec@2" },
-        { "command": "codeSec.showBlastRadius","group": "codeSec@3" }
+        { "command": "codeSec.analyzeFile",     "group": "codeSec@1" },
+        { "command": "codeSec.copyAiContext",   "group": "codeSec@2" },
+        { "command": "codeSec.showBlastRadius", "group": "codeSec@3" }
       ]
     }
   },
@@ -135,6 +145,7 @@
   "devDependencies": {
     "@types/node":   "^20.0.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce":  "^3.0.0",
     "typescript":    "^5.3.0"
   }
 }
