@@ -41,7 +41,7 @@ class StatusBarManager {
         this.store = store;
         this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         // Clicking the status bar opens the dashboard
-        this.item.command = 'codeSec.openDashboard';
+        this.item.command = 'codescape.openDashboard';
         this.item.show();
         this.render();
     }
@@ -53,9 +53,9 @@ class StatusBarManager {
         const total = all.reduce((n, r) => n + r.issues.length, 0);
         if (total === 0) {
             // Green checkmark when the workspace is clean
-            this.item.text = '$(check) CodeSec';
+            this.item.text = '$(check) Codescape';
             this.item.backgroundColor = undefined;
-            this.item.tooltip = 'CodeSec: No issues found';
+            this.item.tooltip = 'Codescape: No issues found';
             return;
         }
         const parts = [];
@@ -63,8 +63,8 @@ class StatusBarManager {
             parts.push(`$(error) ${errors}`);
         if (warnings > 0)
             parts.push(`$(warning) ${warnings}`);
-        this.item.text = `CodeSec: ${parts.join('  ')}`;
-        this.item.tooltip = `CodeSec: ${total} issue(s) — click to open dashboard`;
+        this.item.text = `Codescape: ${parts.join('  ')}`;
+        this.item.tooltip = `Codescape: ${total} issue(s) — click to open dashboard`;
         this.item.backgroundColor = errors > 0
             ? new vscode.ThemeColor('statusBarItem.errorBackground')
             : new vscode.ThemeColor('statusBarItem.warningBackground');

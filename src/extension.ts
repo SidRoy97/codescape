@@ -315,6 +315,41 @@ function activateInternal(context: vscode.ExtensionContext): void {
     }),
   );
 
+  // List symbols that nothing calls — possible dead code. Clicking one
+  // jumps to its definition. Entry points and dynamic calls may be false
+  // positives, so this is framed as "review", not "delete".
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codescape.findUnused', async () => {
+      const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!root) { vscode.window.showWarningMessage('Codescape: No workspace open.'); return; }
+
+      const unused = new ImpactAnalyzer(graphBuilder.getGraph()).findUnusedSymbols();
+      if (unused.length === 0) {
+        vscode.window.showInformationMessage('Codescape: No unused symbols found.');
+        return;
+      }
+
+      const items = unused.map(node => ({
+        label: node.name,
+        description: `${node.kind} · ${node.file}:${node.line + 1}`,
+        node,
+      }));
+
+      const pick = await vscode.window.showQuickPick(items, {
+        title: `${unused.length} possibly-unused symbol(s) — review before deleting`,
+        placeHolder: 'No callers found in the graph. Entry points and dynamic calls may be false positives.',
+      });
+
+      if (pick) {
+        const uri = vscode.Uri.file(path.join(root, pick.node.file));
+        const editor = await vscode.window.showTextDocument(uri);
+        const pos = new vscode.Position(pick.node.line, 0);
+        editor.selection = new vscode.Selection(pos, pos);
+        editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+      }
+    }),
+  );
+
   // --- Event listeners ---
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument(async doc => {

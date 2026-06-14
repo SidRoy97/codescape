@@ -119,7 +119,7 @@ class AnalysisOrchestrator {
         }
         catch (e) {
             // AI failure never breaks static results
-            console.error('CodeSec: AI phase error', e);
+            console.error('Codescape: AI phase error', e);
         }
     }
     // For .tsx/.jsx: React rules are more specific than JS rules

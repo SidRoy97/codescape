@@ -4,8 +4,8 @@ import { LanguageParser } from './LanguageParser';
 import { CodeGraph, CodeNode, CodeEdge } from './CodeGraphTypes';
 
 // File patterns to scan and folders to ignore.
-const FILE_GLOB    = '**/*.{js,jsx,ts,tsx,py,java}';
-const IGNORE_GLOB  = '{**/node_modules/**,**/dist/**,**/out/**,**/build/**}';
+const FILE_GLOB   = '**/*.{js,jsx,ts,tsx,py,java}';
+const IGNORE_GLOB = '{**/node_modules/**,**/dist/**,**/out/**,**/build/**,**/*.min.js}';
 
 // Single job: build a CodeGraph for the workspace by parsing every
 // supported file and connecting calls to the symbols they reference.
@@ -24,7 +24,8 @@ export class CodeGraphBuilder {
       return this.graph;
     }
 
-    const uris = await vscode.workspace.findFiles(FILE_GLOB, IGNORE_GLOB);
+    const allUris = await vscode.workspace.findFiles(FILE_GLOB, IGNORE_GLOB);
+    const sourceUris = this.dropCompiledSiblings(allUris);
 
     const nodes: CodeNode[] = [];
     // Records "this symbol calls something named X" before we resolve X to an id.
@@ -33,7 +34,7 @@ export class CodeGraphBuilder {
     // used to resolve call names back to real nodes.
     const nameToIds = new Map<string, string[]>();
 
-    for (const uri of uris) {
+    for (const uri of sourceUris) {
       // Security: never read a file that resolves outside the workspace.
       if (!this.isInsideWorkspace(uri.fsPath, root)) continue;
 
@@ -89,6 +90,20 @@ export class CodeGraphBuilder {
     return dest;
   }
 
+  // Skip a compiled .js/.jsx file when a .ts/.tsx sibling exists.
+  // This avoids indexing build output sitting next to source, which would
+  // otherwise add duplicate nodes and TypeScript's async helper functions
+  // (adopt, fulfilled, rejected, step, verb) as noise.
+  private dropCompiledSiblings(uris: vscode.Uri[]): vscode.Uri[] {
+    const allPaths = new Set(uris.map(u => u.fsPath));
+    return uris.filter(uri => {
+      const p = uri.fsPath;
+      if (p.endsWith('.js'))  return !allPaths.has(p.replace(/\.js$/,  '.ts'));
+      if (p.endsWith('.jsx')) return !allPaths.has(p.replace(/\.jsx$/, '.tsx'));
+      return true;
+    });
+  }
+
   // Find which declared symbol a call belongs to, by line position.
   // The enclosing symbol is the last one declared at or before the call line.
   private enclosingSymbolId(
@@ -106,7 +121,10 @@ export class CodeGraphBuilder {
   }
 
   // Turn recorded calls into edges by matching callee names to node ids.
-  // Unresolved names (calls to library code we never parsed) are dropped.
+  // When a name resolves to several files, prefer a definition in the same
+  // file as the caller — this removes most false edges from common method
+  // names like get, clear, dispose, render, show. Unresolved names (calls to
+  // library code we never parsed) are dropped.
   private resolveEdges(
     pendingCalls: Array<{ fromId: string; calleeName: string }>,
     nameToIds: Map<string, string[]>,
@@ -118,7 +136,11 @@ export class CodeGraphBuilder {
       const targetIds = nameToIds.get(call.calleeName);
       if (!targetIds) continue;
 
-      for (const toId of targetIds) {
+      const callerFile = call.fromId.split('::')[0];
+      const sameFile = targetIds.filter(id => id.split('::')[0] === callerFile);
+      const chosen = sameFile.length > 0 ? sameFile : targetIds;
+
+      for (const toId of chosen) {
         if (toId === call.fromId) continue; // ignore self-calls
 
         const key = `${call.fromId}->${toId}`;

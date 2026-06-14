@@ -58,15 +58,15 @@ class DashboardProvider {
         // Handle button clicks and navigation from inside the webview
         webviewView.webview.onDidReceiveMessage(msg => {
             if (msg.command === 'analyzeFile')
-                vscode.commands.executeCommand('codeSec.analyzeFile');
+                vscode.commands.executeCommand('codescape.analyzeFile');
             if (msg.command === 'analyzeWorkspace')
-                vscode.commands.executeCommand('codeSec.analyzeWorkspace');
+                vscode.commands.executeCommand('codescape.analyzeWorkspace');
             if (msg.command === 'clearAll')
-                vscode.commands.executeCommand('codeSec.clearIssues');
+                vscode.commands.executeCommand('codescape.clearIssues');
             if (msg.command === 'openSettings')
                 vscode.commands.executeCommand('workbench.action.openSettings', 'codeSec');
             if (msg.command === 'generateConfig')
-                vscode.commands.executeCommand('codeSec.generateConfig');
+                vscode.commands.executeCommand('codescape.generateConfig');
             // Jump to the exact line where the issue was found
             if (msg.command === 'goToLine') {
                 const uri = vscode.Uri.parse(msg.uri);
@@ -284,4 +284,4 @@ ${total > 0 ? `
     }
 }
 exports.DashboardProvider = DashboardProvider;
-DashboardProvider.viewId = 'codeSec.dashboard';
+DashboardProvider.viewId = 'codescape.dashboard';

@@ -36,107 +36,106 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContextPicker = void 0;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
-// Single job: build the smallest possible AI context bundle for a request
+const ImpactAnalyzer_1 = require("../graph/ImpactAnalyzer");
+// Single job: build the smallest useful AI context bundle for a request.
+// It reads the code graph (passed in via a getter) and the file summaries.
+// It no longer depends on SymbolIndexer or BlastRadiusAnalyzer — the graph
+// is now the single source of truth for symbols and impact.
 class ContextPicker {
-    constructor(symbols, blast, summaries) {
-        this.symbols = symbols;
-        this.blast = blast;
-        this.summaries = summaries;
+    constructor(getGraph, summarizer) {
+        this.getGraph = getGraph;
+        this.summarizer = summarizer;
     }
-    // Build full context for the active file + selected symbol
-    // Use when asking AI to change a specific function
+    // Build full context for the active file plus the selected symbol.
+    // Use when asking AI to change a specific function.
     async buildContext(editor) {
         const document = editor.document;
-        const folders = vscode.workspace.workspaceFolders;
-        if (!folders)
+        const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!root)
             return '';
-        const root = folders[0].uri.fsPath;
-        const rel = path.relative(root, document.uri.fsPath);
-        // Get the word the cursor is on — or the selected text
+        const relFile = path.relative(root, document.uri.fsPath);
+        const graph = this.getGraph();
+        // The word under the cursor, or the current selection.
         const selection = editor.selection;
         const selectedWord = selection.isEmpty
             ? document.getText(document.getWordRangeAtPosition(selection.active))
             : document.getText(selection);
         const parts = [];
-        // 1. File summaries — gives AI the project map in ~20 lines
-        const fileSummaries = this.summaries.getSummaries();
-        if (fileSummaries.size > 0) {
-            parts.push('// ═══ PROJECT FILE SUMMARIES ═══');
-            for (const [file, summary] of fileSummaries) {
+        // 1. File summaries — gives the AI a project map in ~20 lines.
+        const summaries = this.summarizer.getSummaries();
+        if (summaries.size > 0) {
+            parts.push('// === PROJECT FILE SUMMARIES ===');
+            for (const [file, summary] of summaries) {
                 parts.push(`// ${file.padEnd(50)} ${summary}`);
             }
             parts.push('');
         }
-        // 2. The current file — always include the full content
-        parts.push(`// ═══ CURRENT FILE: ${rel} ═══`);
+        // 2. The current file — always include the full text.
+        parts.push(`// === CURRENT FILE: ${relFile} ===`);
         parts.push(document.getText());
         parts.push('');
-        // 3. Related symbols — find where the selected word is defined
+        // 3. Impact of the selected symbol — what it calls, what calls it.
         if (selectedWord && selectedWord.length > 1) {
-            const found = await this.symbols.search(selectedWord);
-            const exact = found.filter(s => s.name === selectedWord);
-            if (exact.length > 0) {
-                parts.push(`// ═══ SYMBOL: "${selectedWord}" ═══`);
-                for (const sym of exact) {
-                    parts.push(`// Defined at: ${sym.file} L${sym.line + 1} (${sym.kind})`);
-                }
-                parts.push('');
-                // Include the file content where the symbol is defined
-                // Limit to 3 files to keep token count reasonable
-                const included = new Set([rel]);
-                for (const sym of exact.slice(0, 3)) {
-                    if (included.has(sym.file))
-                        continue;
-                    included.add(sym.file);
-                    try {
-                        const uri = vscode.Uri.file(sym.fullPath);
-                        const doc = await vscode.workspace.openTextDocument(uri);
-                        parts.push(`// ═══ DEPENDENCY: ${sym.file} ═══`);
-                        parts.push(doc.getText());
+            const node = graph.nodes.find(n => n.name === selectedWord && n.file === relFile)
+                ?? graph.nodes.find(n => n.name === selectedWord);
+            if (node) {
+                const analyzer = new ImpactAnalyzer_1.ImpactAnalyzer(graph);
+                const impact = analyzer.analyze(node.id);
+                if (impact) {
+                    parts.push(`// === SYMBOL: ${selectedWord} ===`);
+                    parts.push(`// Defined at ${node.file}:${node.line + 1} (${node.kind})`);
+                    parts.push('');
+                    if (impact.directCallers.length > 0) {
+                        parts.push('// Called by:');
+                        for (const caller of impact.directCallers) {
+                            parts.push(`//   ${caller.file}:${caller.line + 1} ${caller.name}`);
+                        }
                         parts.push('');
                     }
-                    catch { /* skip if file can't be read */ }
+                    if (impact.affected.length > 0) {
+                        parts.push(`// Changing this affects ${impact.affected.length} symbol(s) — check these before editing.`);
+                        parts.push('');
+                    }
                 }
             }
         }
-        // 4. Blast radius — tells AI what else might break
-        try {
-            const node = await this.blast.getBlastRadius(document.uri);
-            if (node.importedBy.length > 0) {
-                parts.push('// ═══ BLAST RADIUS ═══');
-                parts.push(`// Changing ${rel} may affect ${node.blastRadius} file(s):`);
-                for (const f of node.importedBy) {
-                    parts.push(`//   → ${f}`);
-                }
-                parts.push('');
-            }
-        }
-        catch { /* blast radius optional — skip if not built yet */ }
         const content = parts.join('\n');
         const tokenEst = Math.round(content.length / 4);
-        // Header with token estimate so user knows how big the context is
         const header = [
-            `// ═══ CODESEC AI CONTEXT ═══`,
+            '// === CODESCAPE AI CONTEXT ===',
             `// Generated: ${new Date().toLocaleString()}`,
             `// Estimated tokens: ~${tokenEst}`,
-            `// Active file: ${rel}`,
+            `// Active file: ${relFile}`,
             `// Selected symbol: ${selectedWord || '(none — place cursor on a function name)'}`,
             '',
         ].join('\n');
         return header + content;
     }
-    // Build lightweight context — just summaries + symbol map, no file contents
-    // Use for high-level questions: "where should I add X?" or "how does Y work?"
+    // Build a lightweight context — summaries plus the symbol list, no file bodies.
+    // Use for high-level questions: architecture, where to add things.
     async buildLightContext() {
+        const graph = this.getGraph();
         const parts = [
-            '// ═══ CODESEC LIGHT CONTEXT ═══',
+            '// === CODESCAPE LIGHT CONTEXT ===',
             `// Generated: ${new Date().toLocaleString()}`,
-            `// Use this for: architecture questions, where to add things, high-level changes`,
             '',
-            this.summaries.formatForAi(),
+            this.summarizer.formatForAi(),
             '',
-            this.symbols.formatForAi(),
+            '// === SYMBOL INDEX ===',
         ];
+        // Group symbols by file so the list is readable.
+        const byFile = new Map();
+        for (const node of graph.nodes) {
+            const existing = byFile.get(node.file) ?? [];
+            existing.push(node);
+            byFile.set(node.file, existing);
+        }
+        for (const [file, nodes] of byFile) {
+            parts.push(`// ${file}`);
+            for (const node of nodes) {
+                parts.push(`//   ${node.kind.padEnd(10)} ${node.name.padEnd(35)} L${node.line + 1}`);
+            }
+        }
         return parts.join('\n');
     }
 }

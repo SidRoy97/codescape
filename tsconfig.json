@@ -1,13 +1,16 @@
 {
-    "compilerOptions": {
-      "module": "commonjs",
-      "target": "ES2020",
-      "outDir": "./out",
-      "rootDir": "./src",
-      "strict": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "downlevelIteration": true
-    },
-    "exclude": ["node_modules", ".vscode-test"]
-  }
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2020",
+    "outDir": "./out",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "downlevelIteration": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", ".vscode-test", "out"]
+}

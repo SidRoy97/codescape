@@ -1,5 +1,14 @@
 import { CodeGraph, CodeNode, ImpactResult } from './CodeGraphTypes';
 
+// Symbol names that are invoked by VS Code or the language runtime rather
+// than by code we can see in the graph. These must never be reported as
+// unused, or every extension entry point would be a false positive.
+const ENTRY_POINTS = new Set([
+  'activate', 'deactivate', 'constructor',
+  'provideCodeActions', 'provideCodeLenses', 'resolveWebviewView',
+  'dispose',
+]);
+
 // Single job: answer impact questions by traversing an existing graph.
 // Pure logic — it reads a CodeGraph and returns nodes. It does no file I/O,
 // no parsing, and no UI work, so it has no security surface of its own.
@@ -35,6 +44,25 @@ export class ImpactAnalyzer {
       }
     }
     return affectedFiles.size;
+  }
+
+  // Symbols that nothing else calls — candidates for dead code.
+  // Excludes framework entry points (activate, dispose, etc.) since those
+  // are invoked by VS Code, not by code we can see. Also excludes classes
+  // and constructors: these are reached via `new ClassName()`, which v1 does
+  // not track as a call edge, so reporting them would be a false positive.
+  // Treat the result as "review these", not "delete these": exported API
+  // used by other projects and dynamic calls (obj[name]()) can still appear.
+  findUnusedSymbols(): CodeNode[] {
+    const calledIds = new Set(this.graph.edges.map(e => e.to));
+
+    return this.graph.nodes.filter(node => {
+      if (node.kind === 'class') return false;        // reached via `new`, not tracked
+      if (node.name === 'constructor') return false;  // runs on instantiation
+      if (calledIds.has(node.id)) return false;        // something calls it
+      if (ENTRY_POINTS.has(node.name)) return false;   // framework entry point
+      return true;
+    });
   }
 
   // Symbols that directly call or import the given symbol.

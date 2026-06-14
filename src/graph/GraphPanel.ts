@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ImpactAnalyzer } from './ImpactAnalyzer';
-import { CodeGraph, ImpactResult } from './CodeGraphTypes';
+import { CodeGraph } from './CodeGraphTypes';
 
 // Single job: show the impact of one symbol as an interactive graph.
 // This file owns every cross-site-scripting defence in the feature:
@@ -39,7 +39,7 @@ export class GraphPanel {
       });
     }
 
-    this.panel.webview.html = this.buildHtml(this.panel.webview);
+    this.panel.webview.html = this.buildHtml();
     this.renderImpact(nodeId);
     this.panel.reveal(vscode.ViewColumn.Beside);
   }
@@ -75,7 +75,7 @@ export class GraphPanel {
   // Build the webview HTML shell. Contains no code data — only the
   // CSP, the Cytoscape script tag, and the rendering script. All data
   // arrives later by message and is rendered via the Cytoscape API.
-  private buildHtml(webview: vscode.Webview): string {
+  private buildHtml(): string {
     const nonce = this.makeNonce();
     const cytoscapeUrl = 'https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js';
 
