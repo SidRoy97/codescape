@@ -2,7 +2,7 @@
   "name": "codescape-ai",
   "displayName": "Codescape — AI Code Quality & Impact Graph",
   "description": "Security, code quality, SOLID analysis, AI-powered fixes, and an interactive code impact graph. Works with Ollama, Groq, HuggingFace, and more.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "SidRoy300497",
   "license": "MIT",
   "repository": {
@@ -13,28 +13,80 @@
   "bugs": {
     "url": "https://github.com/SidRoy97/codescape/issues"
   },
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Linters", "Other"],
-  "activationEvents": ["onStartupFinished"],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "icon": "media/icon.png",
   "contributes": {
     "commands": [
-      { "command": "codescape.analyzeFile",      "title": "Codescape: Analyze Current File" },
-      { "command": "codescape.analyzeWorkspace", "title": "Codescape: Analyze Entire Workspace" },
-      { "command": "codescape.clearIssues",      "title": "Codescape: Clear All Issues" },
-      { "command": "codescape.openDashboard",    "title": "Codescape: Open Dashboard" },
-      { "command": "codescape.generateConfig",   "title": "Codescape: Generate .codescape.json" },
-      { "command": "codescape.fixWithAi",        "title": "Codescape: Fix with AI" },
-      { "command": "codescape.explainIssue",     "title": "Codescape: Explain this Issue" },
-      { "command": "codescape.copyAiContext",    "title": "Codescape: Copy AI Context for Selected Symbol" },
-      { "command": "codescape.copyLightContext", "title": "Codescape: Copy Light Context (Summaries Only)" },
-      { "command": "codescape.generateAiContext","title": "Codescape: Generate AI Context File (AGENTS.md)" },
-      { "command": "codescape.summarizeFiles",   "title": "Codescape: Summarize Project Files" },
-      { "command": "codescape.buildGraph",       "title": "Codescape: Build Code Graph" },
-      { "command": "codescape.exportGraph",      "title": "Codescape: Export Code Graph (codescape.json)" },
-      { "command": "codescape.findUnused",       "title": "Codescape: Find Unused Symbols" },
-      { "command": "codescape.showBlastRadius",  "title": "Codescape: Show Blast Radius for Current File" }
+      {
+        "command": "codescape.analyzeFile",
+        "title": "Codescape: Analyze Current File"
+      },
+      {
+        "command": "codescape.analyzeWorkspace",
+        "title": "Codescape: Analyze Entire Workspace"
+      },
+      {
+        "command": "codescape.clearIssues",
+        "title": "Codescape: Clear All Issues"
+      },
+      {
+        "command": "codescape.openDashboard",
+        "title": "Codescape: Open Dashboard"
+      },
+      {
+        "command": "codescape.generateConfig",
+        "title": "Codescape: Generate .codescape.json"
+      },
+      {
+        "command": "codescape.fixWithAi",
+        "title": "Codescape: Fix with AI"
+      },
+      {
+        "command": "codescape.explainIssue",
+        "title": "Codescape: Explain this Issue"
+      },
+      {
+        "command": "codescape.copyAiContext",
+        "title": "Codescape: Copy AI Context for Selected Symbol"
+      },
+      {
+        "command": "codescape.copyLightContext",
+        "title": "Codescape: Copy Light Context (Summaries Only)"
+      },
+      {
+        "command": "codescape.generateAiContext",
+        "title": "Codescape: Generate AI Context File (AGENTS.md)"
+      },
+      {
+        "command": "codescape.summarizeFiles",
+        "title": "Codescape: Summarize Project Files"
+      },
+      {
+        "command": "codescape.buildGraph",
+        "title": "Codescape: Build Code Graph"
+      },
+      {
+        "command": "codescape.exportGraph",
+        "title": "Codescape: Export Code Graph (codescape.json)"
+      },
+      {
+        "command": "codescape.findUnused",
+        "title": "Codescape: Find Unused Symbols"
+      },
+      {
+        "command": "codescape.showBlastRadius",
+        "title": "Codescape: Show Blast Radius for Current File"
+      }
     ],
     "configuration": {
       "title": "Codescape",
@@ -134,21 +186,30 @@
     },
     "menus": {
       "editor/context": [
-        { "command": "codescape.analyzeFile",     "group": "codescape@1" },
-        { "command": "codescape.copyAiContext",   "group": "codescape@2" },
-        { "command": "codescape.showBlastRadius", "group": "codescape@3" }
+        {
+          "command": "codescape.analyzeFile",
+          "group": "codescape@1"
+        },
+        {
+          "command": "codescape.copyAiContext",
+          "group": "codescape@2"
+        },
+        {
+          "command": "codescape.showBlastRadius",
+          "group": "codescape@3"
+        }
       ]
     }
   },
   "scripts": {
     "compile": "tsc -p ./",
-    "watch":   "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "@types/node":   "^20.0.0",
+    "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
-    "@vscode/vsce":  "^3.0.0",
-    "typescript":    "^5.3.0"
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.3.0"
   },
   "dependencies": {
     "web-tree-sitter": "0.25.10"
