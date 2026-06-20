@@ -3,15 +3,23 @@ import * as path from 'path';
 import { ResultStore } from '../ResultStore';
 import { FileAnalysisResult, IssueCategory, IssueSeverity } from '../types';
 
+// What the dashboard is currently showing: every analyzed file, or just one.
+type ViewScope = { kind: 'workspace' } | { kind: 'file'; uri: string };
+
 // Single job: render the sidebar dashboard webview. It shows summary stats,
-// a grouped action toolbar (every Codescape command), a category breakdown,
-// and a per-file issue list. Buttons post a message that maps to an existing
-// command via executeCommand — the dashboard holds no feature logic itself,
-// so there is exactly one implementation of each feature. The clicked button
-// is highlighted client-side so the user can see what they last ran.
+// a grouped action toolbar, a category breakdown, and a per-file issue list.
+// Buttons post a message that maps to an existing command via executeCommand —
+// the dashboard holds no feature logic itself, so there is exactly one
+// implementation of each feature.
+//
+// The dashboard can be scoped: "This File" shows only the active file's
+// issues, "Workspace" shows everything. In file scope it follows the active
+// editor, so switching files updates the view.
 export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   static readonly viewId = 'codescape.dashboard';
   private view?: vscode.WebviewView;
+  private scope: ViewScope = { kind: 'workspace' };
+  private readonly disposables: vscode.Disposable[] = [];
 
   constructor(private readonly store: ResultStore) {}
 
@@ -22,7 +30,20 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
 
     // Treat every incoming message as untrusted: only a known command id
     // from our fixed allowlist is ever executed.
-    view.webview.onDidReceiveMessage(message => this.handleMessage(message));
+    this.disposables.push(
+      view.webview.onDidReceiveMessage(message => this.handleMessage(message)),
+    );
+
+    // When in file scope, follow the active editor so the view always matches
+    // the file the user is looking at.
+    this.disposables.push(
+      vscode.window.onDidChangeActiveTextEditor(editor => {
+        if (this.scope.kind === 'file' && editor && editor.document.uri.scheme === 'file') {
+          this.scope = { kind: 'file', uri: editor.document.uri.toString() };
+          this.refresh();
+        }
+      }),
+    );
   }
 
   refresh(): void {
@@ -31,8 +52,29 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
     }
   }
 
+  // Switch the dashboard to show only the active file. Called when the user
+  // runs "This File". If no file is open, fall back to workspace scope.
+  scopeToActiveFile(): void {
+    const editor = vscode.window.activeTextEditor
+      ?? vscode.window.visibleTextEditors.find(e => e.document.uri.scheme === 'file');
+    if (editor && editor.document.uri.scheme === 'file') {
+      this.scope = { kind: 'file', uri: editor.document.uri.toString() };
+    } else {
+      this.scope = { kind: 'workspace' };
+    }
+    this.refresh();
+  }
+
+  // Switch the dashboard to show every analyzed file. Called when the user
+  // runs "Workspace".
+  scopeToWorkspace(): void {
+    this.scope = { kind: 'workspace' };
+    this.refresh();
+  }
+
   // Map a button message to a real command. The allowlist is the security
-  // boundary — anything not listed is ignored.
+  // boundary — anything not listed is ignored. The two analyze buttons also
+  // set the view scope so the display matches what was just analyzed.
   private handleMessage(message: unknown): void {
     if (!message || typeof message !== 'object') return;
     const msg = message as Record<string, unknown>;
@@ -42,16 +84,19 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
         'codescape.analyzeFile',
         'codescape.analyzeWorkspace',
         'codescape.clearIssues',
-        'codescape.buildGraph',
         'codescape.showBlastRadius',
         'codescape.findUnused',
         'codescape.exportGraph',
         'codescape.generateUnderstanding',
-        'codescape.summarizeFiles',
         'codescape.reportIssues',
         'codescape.generateConfig',
       ]);
       if (allowed.has(msg.id)) {
+        // Set scope before running, so the refresh after analysis shows the
+        // right slice.
+        if (msg.id === 'codescape.analyzeFile') this.scopeToActiveFile();
+        if (msg.id === 'codescape.analyzeWorkspace') this.scopeToWorkspace();
+        if (msg.id === 'codescape.clearIssues') this.scope = { kind: 'workspace' };
         vscode.commands.executeCommand(msg.id);
       }
       return;
@@ -74,9 +119,24 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
     }
   }
 
+  // The results currently in scope: one file, or all of them.
+  private scopedResults(): FileAnalysisResult[] {
+    const all = this.store.getAll();
+    if (this.scope.kind === 'file') {
+      const wanted = this.scope.uri;
+      return all.filter(r => r.uri.toString() === wanted);
+    }
+    return all;
+  }
+
   private buildHtml(): string {
-    const results = this.store.getAll();
+    const results = this.scopedResults();
     const summary = this.computeSummary(results);
+
+    // A short label describing what the user is looking at.
+    const scopeLabel = this.scope.kind === 'file'
+      ? `This file: ${path.basename(vscode.Uri.parse(this.scope.uri).fsPath)}`
+      : 'Whole workspace';
 
     const fileCards = results
       .filter(r => r.issues.length > 0)
@@ -98,6 +158,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
       `).join('');
 
     const hasIssues = summary.totalIssues > 0;
+    const fileScopeActive = this.scope.kind === 'file';
 
     return /* html */`<!DOCTYPE html>
 <html lang="en">
@@ -138,6 +199,10 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
     box-shadow: 0 0 0 1px var(--accent); font-weight: 700; }
   .btn-primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
   .btn .ic { font-size: 12px; }
+
+  .scope-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 10px;
+    padding: 3px 9px; border-radius: 12px; background: rgba(124,58,237,0.15); color: var(--purple);
+    margin-bottom: 12px; font-weight: 600; }
 
   .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 6px 0 14px; }
   .stat { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
@@ -195,8 +260,8 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
 <div class="group">
   <div class="group-title">Analyze</div>
   <div class="btn-row">
-    <button class="btn btn-primary" data-cmd="codescape.analyzeFile"><span class="ic">⚡</span>This File</button>
-    <button class="btn" data-cmd="codescape.analyzeWorkspace"><span class="ic">📂</span>Workspace</button>
+    <button class="btn ${fileScopeActive ? 'btn-primary' : ''}" data-cmd="codescape.analyzeFile"><span class="ic">⚡</span>This File</button>
+    <button class="btn ${!fileScopeActive ? 'btn-primary' : ''}" data-cmd="codescape.analyzeWorkspace"><span class="ic">📂</span>Workspace</button>
     <button class="btn" data-cmd="codescape.clearIssues"><span class="ic">🗑</span>Clear</button>
   </div>
 </div>
@@ -204,7 +269,6 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
 <div class="group">
   <div class="group-title">Understand Code</div>
   <div class="btn-row">
-    <button class="btn" data-cmd="codescape.buildGraph"><span class="ic">🕸️</span>Code Graph</button>
     <button class="btn" data-cmd="codescape.showBlastRadius"><span class="ic">💥</span>Blast Radius</button>
     <button class="btn" data-cmd="codescape.findUnused"><span class="ic">🔍</span>Unused</button>
   </div>
@@ -214,7 +278,6 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
   <div class="group-title">For AI / LLMs</div>
   <div class="btn-row">
     <button class="btn" data-cmd="codescape.generateUnderstanding"><span class="ic">📖</span>Understanding Doc</button>
-    <button class="btn" data-cmd="codescape.summarizeFiles"><span class="ic">📝</span>Summarize Files</button>
   </div>
 </div>
 
@@ -227,6 +290,8 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
     <button class="btn" data-settings="1"><span class="ic">🔧</span>Settings</button>
   </div>
 </div>
+
+<div class="scope-pill">👁 ${this.esc(scopeLabel)}</div>
 
 <div class="summary-grid">
   <div class="stat"><div class="stat-num red">${summary.bySeverity.error ?? 0}</div><div class="stat-label">Errors</div></div>
@@ -243,7 +308,7 @@ ${fileCards}
 ` : `
 <div class="empty">
   <div class="empty-icon">✅</div>
-  <div>No issues found yet.</div>
+  <div>${this.scope.kind === 'file' ? 'No issues in this file.' : 'No issues found yet.'}</div>
   <div style="margin-top:7px;font-size:10px">Click "This File" or "Workspace" to analyze.</div>
 </div>
 `}
@@ -251,8 +316,6 @@ ${fileCards}
 <script>
   const vscode = acquireVsCodeApi();
 
-  // Wire every toolbar button. The clicked one gets the "active" class so the
-  // user can see what they last triggered; this is purely visual state.
   document.querySelectorAll('.btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (btn.dataset.settings) {
@@ -261,8 +324,6 @@ ${fileCards}
       }
       const id = btn.dataset.cmd;
       if (!id) return;
-      document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
       vscode.postMessage({ type: 'command', id });
     });
   });
@@ -341,6 +402,6 @@ ${fileCards}
   }
 
   dispose(): void {
-    // No persistent resources to release.
+    for (const d of this.disposables) d.dispose();
   }
 }

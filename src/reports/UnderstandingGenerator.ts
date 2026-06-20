@@ -53,6 +53,25 @@ const GLOBAL_PROMPT =
   'Given the list of files and their summaries, write one short paragraph (3-4 sentences) ' +
   'describing what the project is, its architecture, and how the pieces fit. Reply with plain text only.';
 
+// Common built-in / global method names that are not project symbols. I drop
+// these from callers/callees so the relationships only show real functions
+// defined in this codebase, not standard-library calls like JSON.parse.
+//
+// I keep this list conservative: it only includes names that are almost never
+// used as project method names (Array/Promise/JSON built-ins). Names like
+// "get", "show", "clear", "add", "remove" are intentionally NOT filtered,
+// because they are real method names in this project and filtering them would
+// drop legitimate edges. The trade-off is that a few true built-in calls with
+// those names may remain, which is the safer error.
+const BUILTIN_NAMES = new Set([
+  'parse', 'stringify',
+  'push', 'pop', 'shift', 'unshift', 'map', 'filter', 'reduce', 'forEach',
+  'find', 'some', 'every', 'sort', 'join', 'split', 'slice', 'splice',
+  'concat', 'includes', 'indexOf', 'keys', 'values', 'entries',
+  'then', 'catch', 'finally',
+  'toString', 'valueOf', 'call', 'apply', 'bind',
+]);
+
 // Single job: build the structured code-understanding document. It reads the
 // graph (for symbols + relationships) and the file summaries, asks the AI for
 // a one-line summary per symbol (batched one call per file), and writes a
@@ -73,12 +92,19 @@ export class UnderstandingGenerator {
 
     const graph = this.getGraph();
     if (graph.nodes.length === 0) {
-      vscode.window.showWarningMessage('Codescape: Build the code graph first (Build Graph).');
+      vscode.window.showWarningMessage('Codescape: No code symbols found to document.');
       return;
     }
 
     const analyzer = new ImpactAnalyzer(graph);
-    const fileSummaries = this.summarizer.getSummaries();
+
+    // If file summaries have never been generated, run them now so the
+    // file-level summary fields are populated instead of falling back.
+    let fileSummaries = this.summarizer.getSummaries();
+    if (fileSummaries.size === 0) {
+      await this.summarizer.summarizeWorkspace();
+      fileSummaries = this.summarizer.getSummaries();
+    }
 
     // Probe the AI once up front. If it returns nothing, the provider is not
     // reachable (e.g. Ollama not running) and every summary would silently be
@@ -164,7 +190,10 @@ export class UnderstandingGenerator {
   private async summarizeFileSymbols(root: string, file: string, nodes: CodeNode[]): Promise<AiSummaryMap> {
     let code = '';
     try {
-      code = fs.readFileSync(path.join(root, file), 'utf8').slice(0, 6000);
+      // I read a generous slice of the file so symbols near the bottom of
+      // longer files still get accurate summaries. Very large files are still
+      // capped to keep each AI call within a reasonable size.
+      code = fs.readFileSync(path.join(root, file), 'utf8').slice(0, 14000);
     } catch {
       return {};
     }
@@ -246,12 +275,16 @@ export class UnderstandingGenerator {
   }
 
   // Caller and callee names for a node, read straight from the graph edges.
+  // I filter out built-in/global method names (Map.get, JSON.parse, etc.) so
+  // the relationships only list real symbols defined in this project.
   private relationships(node: CodeNode, graph: CodeGraph, analyzer: ImpactAnalyzer): { callers: string[]; callees: string[] } {
+    const clean = (names: string[]) => names.filter(n => !BUILTIN_NAMES.has(n));
+
     const result = analyzer.analyze(node.id);
     if (result) {
       return {
-        callers: result.directCallers.map(n => n.name),
-        callees: result.directCallees.map(n => n.name),
+        callers: clean(result.directCallers.map(n => n.name)),
+        callees: clean(result.directCallees.map(n => n.name)),
       };
     }
     // Fallback to raw edge scan if analyze returns null.
@@ -259,7 +292,7 @@ export class UnderstandingGenerator {
       .map(e => graph.nodes.find(n => n.id === e.from)?.name).filter((n): n is string => !!n);
     const callees = graph.edges.filter(e => e.from === node.id)
       .map(e => graph.nodes.find(n => n.id === e.to)?.name).filter((n): n is string => !!n);
-    return { callers, callees };
+    return { callers: clean(callers), callees: clean(callees) };
   }
 
   // A plain description used when the AI gives nothing, so the document is

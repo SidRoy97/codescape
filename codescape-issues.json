@@ -1,6 +1,6 @@
 {
-  "generated": "2026-06-20T01:17:26.458Z",
-  "totalIssues": 77,
+  "generated": "2026-06-20T05:33:32.179Z",
+  "totalIssues": 79,
   "files": [
     {
       "file": "src/extension.ts",
@@ -8,7 +8,7 @@
       "issues": [
         {
           "function": "activate",
-          "line": 46,
+          "line": 47,
           "severity": "hint",
           "category": "code-smell",
           "message": "console statement found — remove before shipping.",
@@ -17,7 +17,7 @@
         },
         {
           "function": "activate",
-          "line": 49,
+          "line": 50,
           "severity": "hint",
           "category": "code-smell",
           "message": "console statement found — remove before shipping.",
@@ -26,7 +26,7 @@
         },
         {
           "function": "activate",
-          "line": 52,
+          "line": 53,
           "severity": "hint",
           "category": "code-smell",
           "message": "console statement found — remove before shipping.",
@@ -35,21 +35,12 @@
         },
         {
           "function": "activateInternal",
-          "line": 57,
+          "line": 58,
           "severity": "warning",
           "category": "code-smell",
-          "message": "Function is 381 lines long — split it into smaller functions.",
+          "message": "Function is 402 lines long — split it into smaller functions.",
           "suggestion": "Aim for under 30 lines per function.",
           "rule": "js:long-function"
-        },
-        {
-          "function": "activateInternal",
-          "line": 72,
-          "severity": "hint",
-          "category": "code-smell",
-          "message": "console statement found — remove before shipping.",
-          "suggestion": "Use a logging library like winston or pino.",
-          "rule": "js:no-console"
         },
         {
           "function": "activateInternal",
@@ -71,7 +62,7 @@
         },
         {
           "function": "activateInternal",
-          "line": 129,
+          "line": 75,
           "severity": "hint",
           "category": "code-smell",
           "message": "console statement found — remove before shipping.",
@@ -80,7 +71,16 @@
         },
         {
           "function": "activateInternal",
-          "line": 134,
+          "line": 136,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "activateInternal",
+          "line": 141,
           "severity": "error",
           "category": "security",
           "message": "SQL query built with string interpolation — SQL injection risk.",
@@ -89,16 +89,16 @@
         },
         {
           "function": "activateInternal",
-          "line": 177,
+          "line": 184,
           "severity": "warning",
           "category": "duplicate",
-          "message": "Duplicate block (6+ lines) also at line 203.",
+          "message": "Duplicate block (6+ lines) also at line 210.",
           "suggestion": "Extract shared logic into a reusable function.",
           "rule": "duplicate:block"
         },
         {
           "function": "activateInternal",
-          "line": 380,
+          "line": 402,
           "severity": "hint",
           "category": "code-smell",
           "message": "Magic number — name it so the intent is clear.",
@@ -107,7 +107,7 @@
         },
         {
           "function": "activateInternal",
-          "line": 394,
+          "line": 416,
           "severity": "error",
           "category": "security",
           "message": "SQL query built with string interpolation — SQL injection risk.",
@@ -116,7 +116,7 @@
         },
         {
           "function": "activateInternal",
-          "line": 422,
+          "line": 444,
           "severity": "error",
           "category": "security",
           "message": "SQL query built with string interpolation — SQL injection risk.",
@@ -125,7 +125,7 @@
         },
         {
           "function": "activateInternal",
-          "line": 432,
+          "line": 454,
           "severity": "error",
           "category": "security",
           "message": "SQL query built with string interpolation — SQL injection risk.",
@@ -134,7 +134,7 @@
         },
         {
           "function": "activateInternal",
-          "line": 435,
+          "line": 457,
           "severity": "hint",
           "category": "code-smell",
           "message": "Magic number — name it so the intent is clear.",
@@ -143,7 +143,7 @@
         },
         {
           "function": "deactivate",
-          "line": 441,
+          "line": 463,
           "severity": "hint",
           "category": "code-smell",
           "message": "console statement found — remove before shipping.",
@@ -610,6 +610,48 @@
       ]
     },
     {
+      "file": "src/context/FileSummarizer.ts",
+      "issueCount": 4,
+      "issues": [
+        {
+          "function": "summarizeWorkspace",
+          "line": 69,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "Magic number — name it so the intent is clear.",
+          "suggestion": "const SECONDS_PER_DAY = 86400;",
+          "rule": "js:magic-number"
+        },
+        {
+          "function": "saveCache",
+          "line": 123,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "hashString",
+          "line": 132,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "Magic number — name it so the intent is clear.",
+          "suggestion": "const SECONDS_PER_DAY = 86400;",
+          "rule": "js:magic-number"
+        },
+        {
+          "function": "hashString",
+          "line": 133,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "Magic number — name it so the intent is clear.",
+          "suggestion": "const SECONDS_PER_DAY = 86400;",
+          "rule": "js:magic-number"
+        }
+      ]
+    },
+    {
       "file": "src/rules/pythonRules.ts",
       "issueCount": 4,
       "issues": [
@@ -651,12 +693,12 @@
       ]
     },
     {
-      "file": "src/context/FileSummarizer.ts",
-      "issueCount": 4,
+      "file": "src/providers/DashboardProvider.ts",
+      "issueCount": 2,
       "issues": [
         {
-          "function": "summarizeWorkspace",
-          "line": 69,
+          "function": "buildHtml",
+          "line": 126,
           "severity": "hint",
           "category": "code-smell",
           "message": "Magic number — name it so the intent is clear.",
@@ -664,26 +706,8 @@
           "rule": "js:magic-number"
         },
         {
-          "function": "saveCache",
-          "line": 136,
-          "severity": "hint",
-          "category": "code-smell",
-          "message": "console statement found — remove before shipping.",
-          "suggestion": "Use a logging library like winston or pino.",
-          "rule": "js:no-console"
-        },
-        {
-          "function": "hashString",
-          "line": 145,
-          "severity": "hint",
-          "category": "code-smell",
-          "message": "Magic number — name it so the intent is clear.",
-          "suggestion": "const SECONDS_PER_DAY = 86400;",
-          "rule": "js:magic-number"
-        },
-        {
-          "function": "hashString",
-          "line": 146,
+          "function": "buildHtml",
+          "line": 156,
           "severity": "hint",
           "category": "code-smell",
           "message": "Magic number — name it so the intent is clear.",
@@ -693,21 +717,12 @@
       ]
     },
     {
-      "file": "src/providers/DashboardProvider.ts",
-      "issueCount": 2,
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "issueCount": 1,
       "issues": [
         {
-          "function": "buildHtml",
-          "line": 132,
-          "severity": "hint",
-          "category": "code-smell",
-          "message": "Magic number — name it so the intent is clear.",
-          "suggestion": "const SECONDS_PER_DAY = 86400;",
-          "rule": "js:magic-number"
-        },
-        {
-          "function": "buildHtml",
-          "line": 161,
+          "function": "summarizeFileSymbols",
+          "line": 196,
           "severity": "hint",
           "category": "code-smell",
           "message": "Magic number — name it so the intent is clear.",
@@ -728,6 +743,21 @@
           "message": "Magic number — name it so the intent is clear.",
           "suggestion": "const SECONDS_PER_DAY = 86400;",
           "rule": "js:magic-number"
+        }
+      ]
+    },
+    {
+      "file": "src/graph/ListPanel.ts",
+      "issueCount": 1,
+      "issues": [
+        {
+          "function": "makeNonce",
+          "line": 180,
+          "severity": "warning",
+          "category": "security",
+          "message": "Math.random() is not cryptographically secure.",
+          "suggestion": "Use crypto.randomBytes() or crypto.randomUUID() for security-sensitive values.",
+          "rule": "js:insecure-random"
         }
       ]
     },

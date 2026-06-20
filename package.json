@@ -60,14 +60,6 @@
         "title": "Codescape: Generate Code Understanding Doc"
       },
       {
-        "command": "codescape.summarizeFiles",
-        "title": "Codescape: Summarize Project Files"
-      },
-      {
-        "command": "codescape.buildGraph",
-        "title": "Codescape: Build Code Graph"
-      },
-      {
         "command": "codescape.exportGraph",
         "title": "Codescape: Export Code Graph (codescape.json)"
       },
@@ -132,8 +124,8 @@
         },
         "codescape.enableAiAnalysis": {
           "type": "boolean",
-          "default": true,
-          "description": "Run AI deep analysis in addition to static rules."
+          "default": false,
+          "description": "Run AI deep analysis automatically when files are analyzed. Off by default because it runs a local/remote model and can be CPU/GPU heavy. AI features (Understanding Doc) still work on demand when this is off."
         },
         "codescape.enableStaticAnalysis": {
           "type": "boolean",

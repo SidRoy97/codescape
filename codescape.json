@@ -43,6 +43,83 @@
       "line": 31
     },
     {
+      "id": "src/reports/UnderstandingGenerator.ts::UnderstandingGenerator",
+      "name": "UnderstandingGenerator",
+      "kind": "class",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 78
+    },
+    {
+      "id": "src/reports/UnderstandingGenerator.ts::constructor",
+      "name": "constructor",
+      "kind": "method",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 79
+    },
+    {
+      "id": "src/reports/UnderstandingGenerator.ts::generate",
+      "name": "generate",
+      "kind": "method",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 85
+    },
+    {
+      "id": "src/reports/UnderstandingGenerator.ts::probeAi",
+      "name": "probeAi",
+      "kind": "method",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 166
+    },
+    {
+      "id": "src/reports/UnderstandingGenerator.ts::groupByFile",
+      "name": "groupByFile",
+      "kind": "method",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 176
+    },
+    {
+      "id": "src/reports/UnderstandingGenerator.ts::summarizeFileSymbols",
+      "name": "summarizeFileSymbols",
+      "kind": "method",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 189
+    },
+    {
+      "id": "src/reports/UnderstandingGenerator.ts::buildFileEntry",
+      "name": "buildFileEntry",
+      "kind": "method",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 216
+    },
+    {
+      "id": "src/reports/UnderstandingGenerator.ts::toSymbolEntry",
+      "name": "toSymbolEntry",
+      "kind": "method",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 264
+    },
+    {
+      "id": "src/reports/UnderstandingGenerator.ts::relationships",
+      "name": "relationships",
+      "kind": "method",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 279
+    },
+    {
+      "id": "src/reports/UnderstandingGenerator.ts::fallbackSummary",
+      "name": "fallbackSummary",
+      "kind": "method",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 299
+    },
+    {
+      "id": "src/reports/UnderstandingGenerator.ts::buildGlobalContext",
+      "name": "buildGlobalContext",
+      "kind": "method",
+      "file": "src/reports/UnderstandingGenerator.ts",
+      "line": 305
+    },
+    {
       "id": "src/reports/ProblemsReporter.ts::ProblemsReporter",
       "name": "ProblemsReporter",
       "kind": "class",
@@ -589,6 +666,48 @@
       "line": 174
     },
     {
+      "id": "src/graph/ListPanel.ts::ListPanel",
+      "name": "ListPanel",
+      "kind": "class",
+      "file": "src/graph/ListPanel.ts",
+      "line": 25
+    },
+    {
+      "id": "src/graph/ListPanel.ts::constructor",
+      "name": "constructor",
+      "kind": "method",
+      "file": "src/graph/ListPanel.ts",
+      "line": 29
+    },
+    {
+      "id": "src/graph/ListPanel.ts::show",
+      "name": "show",
+      "kind": "method",
+      "file": "src/graph/ListPanel.ts",
+      "line": 31
+    },
+    {
+      "id": "src/graph/ListPanel.ts::handleMessage",
+      "name": "handleMessage",
+      "kind": "method",
+      "file": "src/graph/ListPanel.ts",
+      "line": 53
+    },
+    {
+      "id": "src/graph/ListPanel.ts::buildHtml",
+      "name": "buildHtml",
+      "kind": "method",
+      "file": "src/graph/ListPanel.ts",
+      "line": 76
+    },
+    {
+      "id": "src/graph/ListPanel.ts::makeNonce",
+      "name": "makeNonce",
+      "kind": "method",
+      "file": "src/graph/ListPanel.ts",
+      "line": 176
+    },
+    {
       "id": "src/graph/GraphPanel.ts::GraphPanel",
       "name": "GraphPanel",
       "kind": "class",
@@ -712,35 +831,35 @@
       "name": "activate",
       "kind": "function",
       "file": "src/extension.ts",
-      "line": 44
+      "line": 45
     },
     {
       "id": "src/extension.ts::activateInternal",
       "name": "activateInternal",
       "kind": "function",
       "file": "src/extension.ts",
-      "line": 56
+      "line": 57
     },
     {
       "id": "src/extension.ts::deactivate",
       "name": "deactivate",
       "kind": "function",
       "file": "src/extension.ts",
-      "line": 439
+      "line": 461
     },
     {
       "id": "src/extension.ts::langToExts",
       "name": "langToExts",
       "kind": "function",
       "file": "src/extension.ts",
-      "line": 444
+      "line": 466
     },
     {
       "id": "src/extension.ts::generateProjectConfig",
       "name": "generateProjectConfig",
       "kind": "function",
       "file": "src/extension.ts",
-      "line": 457
+      "line": 479
     },
     {
       "id": "src/providers/CodeActionsProvider.ts::CodeActionsProvider",
@@ -817,84 +936,84 @@
       "name": "DashboardProvider",
       "kind": "class",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 10
+      "line": 11
     },
     {
       "id": "src/providers/DashboardProvider.ts::constructor",
       "name": "constructor",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 14
+      "line": 15
     },
     {
       "id": "src/providers/DashboardProvider.ts::resolveWebviewView",
       "name": "resolveWebviewView",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 16
+      "line": 17
     },
     {
       "id": "src/providers/DashboardProvider.ts::refresh",
       "name": "refresh",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 29
+      "line": 27
     },
     {
       "id": "src/providers/DashboardProvider.ts::handleMessage",
       "name": "handleMessage",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 37
+      "line": 35
     },
     {
       "id": "src/providers/DashboardProvider.ts::buildHtml",
       "name": "buildHtml",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 82
+      "line": 76
     },
     {
       "id": "src/providers/DashboardProvider.ts::buildFileCard",
       "name": "buildFileCard",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 268
+      "line": 276
     },
     {
       "id": "src/providers/DashboardProvider.ts::computeSummary",
       "name": "computeSummary",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 299
+      "line": 307
     },
     {
       "id": "src/providers/DashboardProvider.ts::catLabel",
       "name": "catLabel",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 319
+      "line": 327
     },
     {
       "id": "src/providers/DashboardProvider.ts::sevDot",
       "name": "sevDot",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 326
+      "line": 334
     },
     {
       "id": "src/providers/DashboardProvider.ts::esc",
       "name": "esc",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 330
+      "line": 338
     },
     {
       "id": "src/providers/DashboardProvider.ts::dispose",
       "name": "dispose",
       "kind": "method",
       "file": "src/providers/DashboardProvider.ts",
-      "line": 334
+      "line": 342
     },
     {
       "id": "src/config/ConfigManager.ts::ConfigManager",
@@ -1065,83 +1184,6 @@
       "line": 282
     },
     {
-      "id": "src/context/AiContextGenerator.ts::AiContextGenerator",
-      "name": "AiContextGenerator",
-      "kind": "class",
-      "file": "src/context/AiContextGenerator.ts",
-      "line": 15
-    },
-    {
-      "id": "src/context/AiContextGenerator.ts::constructor",
-      "name": "constructor",
-      "kind": "method",
-      "file": "src/context/AiContextGenerator.ts",
-      "line": 16
-    },
-    {
-      "id": "src/context/AiContextGenerator.ts::generate",
-      "name": "generate",
-      "kind": "method",
-      "file": "src/context/AiContextGenerator.ts",
-      "line": 22
-    },
-    {
-      "id": "src/context/AiContextGenerator.ts::buildContent",
-      "name": "buildContent",
-      "kind": "method",
-      "file": "src/context/AiContextGenerator.ts",
-      "line": 48
-    },
-    {
-      "id": "src/context/AiContextGenerator.ts::findHighImpactFiles",
-      "name": "findHighImpactFiles",
-      "kind": "method",
-      "file": "src/context/AiContextGenerator.ts",
-      "line": 140
-    },
-    {
-      "id": "src/context/AiContextGenerator.ts::buildFolderTree",
-      "name": "buildFolderTree",
-      "kind": "method",
-      "file": "src/context/AiContextGenerator.ts",
-      "line": 156
-    },
-    {
-      "id": "src/context/AiContextGenerator.ts::isSourceFile",
-      "name": "isSourceFile",
-      "kind": "method",
-      "file": "src/context/AiContextGenerator.ts",
-      "line": 200
-    },
-    {
-      "id": "src/context/ContextPicker.ts::ContextPicker",
-      "name": "ContextPicker",
-      "kind": "class",
-      "file": "src/context/ContextPicker.ts",
-      "line": 10
-    },
-    {
-      "id": "src/context/ContextPicker.ts::constructor",
-      "name": "constructor",
-      "kind": "method",
-      "file": "src/context/ContextPicker.ts",
-      "line": 11
-    },
-    {
-      "id": "src/context/ContextPicker.ts::buildContext",
-      "name": "buildContext",
-      "kind": "method",
-      "file": "src/context/ContextPicker.ts",
-      "line": 18
-    },
-    {
-      "id": "src/context/ContextPicker.ts::buildLightContext",
-      "name": "buildLightContext",
-      "kind": "method",
-      "file": "src/context/ContextPicker.ts",
-      "line": 96
-    },
-    {
       "id": "src/context/FileSummarizer.ts::FileSummarizer",
       "name": "FileSummarizer",
       "kind": "class",
@@ -1170,42 +1212,145 @@
       "line": 95
     },
     {
-      "id": "src/context/FileSummarizer.ts::formatForAi",
-      "name": "formatForAi",
-      "kind": "method",
-      "file": "src/context/FileSummarizer.ts",
-      "line": 101
-    },
-    {
       "id": "src/context/FileSummarizer.ts::loadCache",
       "name": "loadCache",
       "kind": "method",
       "file": "src/context/FileSummarizer.ts",
-      "line": 113
+      "line": 100
     },
     {
       "id": "src/context/FileSummarizer.ts::saveCache",
       "name": "saveCache",
       "kind": "method",
       "file": "src/context/FileSummarizer.ts",
-      "line": 128
+      "line": 115
     },
     {
       "id": "src/context/FileSummarizer.ts::getCachePath",
       "name": "getCachePath",
       "kind": "method",
       "file": "src/context/FileSummarizer.ts",
-      "line": 139
+      "line": 126
     },
     {
       "id": "src/context/FileSummarizer.ts::hashString",
       "name": "hashString",
       "kind": "method",
       "file": "src/context/FileSummarizer.ts",
-      "line": 143
+      "line": 130
     }
   ],
   "edges": [
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::generate",
+      "to": "src/graph/CodeGraphBuilder.ts::getGraph",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::generate",
+      "to": "src/context/FileSummarizer.ts::getSummaries",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::generate",
+      "to": "src/context/FileSummarizer.ts::summarizeWorkspace",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::generate",
+      "to": "src/reports/UnderstandingGenerator.ts::probeAi",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::generate",
+      "to": "src/reports/UnderstandingGenerator.ts::groupByFile",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::generate",
+      "to": "src/ResultStore.ts::get",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::generate",
+      "to": "src/reports/UnderstandingGenerator.ts::summarizeFileSymbols",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::generate",
+      "to": "src/reports/UnderstandingGenerator.ts::buildFileEntry",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::generate",
+      "to": "src/reports/UnderstandingGenerator.ts::buildGlobalContext",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::probeAi",
+      "to": "src/scanners/AiScanner.ts::generateText",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::groupByFile",
+      "to": "src/ResultStore.ts::get",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::summarizeFileSymbols",
+      "to": "src/scanners/AiScanner.ts::generateText",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::summarizeFileSymbols",
+      "to": "src/graph/LanguageParser.ts::parse",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::buildFileEntry",
+      "to": "src/reports/UnderstandingGenerator.ts::toSymbolEntry",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::buildFileEntry",
+      "to": "src/reports/UnderstandingGenerator.ts::relationships",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::buildFileEntry",
+      "to": "src/reports/UnderstandingGenerator.ts::fallbackSummary",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::buildFileEntry",
+      "to": "src/ResultStore.ts::get",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::toSymbolEntry",
+      "to": "src/reports/UnderstandingGenerator.ts::relationships",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::toSymbolEntry",
+      "to": "src/reports/UnderstandingGenerator.ts::fallbackSummary",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::relationships",
+      "to": "src/graph/ImpactAnalyzer.ts::analyze",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::relationships",
+      "to": "src/AnalysisOrchestrator.ts::analyze",
+      "relation": "calls"
+    },
+    {
+      "from": "src/reports/UnderstandingGenerator.ts::buildGlobalContext",
+      "to": "src/scanners/AiScanner.ts::generateText",
+      "relation": "calls"
+    },
     {
       "from": "src/reports/ProblemsReporter.ts::generate",
       "to": "src/ResultStore.ts::getAll",
@@ -1244,6 +1389,11 @@
     {
       "from": "src/reports/ProblemsReporter.ts::toMarkdown",
       "to": "src/ResultStore.ts::get",
+      "relation": "calls"
+    },
+    {
+      "from": "src/publishers/StatusBarManager.ts::constructor",
+      "to": "src/graph/ListPanel.ts::show",
       "relation": "calls"
     },
     {
@@ -1602,6 +1752,21 @@
       "relation": "calls"
     },
     {
+      "from": "src/graph/ListPanel.ts::show",
+      "to": "src/graph/ListPanel.ts::handleMessage",
+      "relation": "calls"
+    },
+    {
+      "from": "src/graph/ListPanel.ts::show",
+      "to": "src/graph/ListPanel.ts::buildHtml",
+      "relation": "calls"
+    },
+    {
+      "from": "src/graph/ListPanel.ts::buildHtml",
+      "to": "src/graph/ListPanel.ts::makeNonce",
+      "relation": "calls"
+    },
+    {
       "from": "src/graph/GraphPanel.ts::show",
       "to": "src/graph/GraphPanel.ts::handleMessage",
       "relation": "calls"
@@ -1738,6 +1903,11 @@
     },
     {
       "from": "src/extension.ts::activateInternal",
+      "to": "src/graph/ListPanel.ts::show",
+      "relation": "calls"
+    },
+    {
+      "from": "src/extension.ts::activateInternal",
       "to": "src/graph/GraphPanel.ts::show",
       "relation": "calls"
     },
@@ -1783,32 +1953,22 @@
     },
     {
       "from": "src/extension.ts::activateInternal",
-      "to": "src/reports/ProblemsReporter.ts::generate",
-      "relation": "calls"
-    },
-    {
-      "from": "src/extension.ts::activateInternal",
-      "to": "src/context/AiContextGenerator.ts::generate",
-      "relation": "calls"
-    },
-    {
-      "from": "src/extension.ts::activateInternal",
-      "to": "src/context/ContextPicker.ts::buildContext",
-      "relation": "calls"
-    },
-    {
-      "from": "src/extension.ts::activateInternal",
-      "to": "src/context/ContextPicker.ts::buildLightContext",
-      "relation": "calls"
-    },
-    {
-      "from": "src/extension.ts::activateInternal",
       "to": "src/graph/CodeGraphBuilder.ts::build",
       "relation": "calls"
     },
     {
       "from": "src/extension.ts::activateInternal",
       "to": "src/graph/CodeGraphBuilder.ts::exportToFile",
+      "relation": "calls"
+    },
+    {
+      "from": "src/extension.ts::activateInternal",
+      "to": "src/reports/UnderstandingGenerator.ts::generate",
+      "relation": "calls"
+    },
+    {
+      "from": "src/extension.ts::activateInternal",
+      "to": "src/reports/ProblemsReporter.ts::generate",
       "relation": "calls"
     },
     {
@@ -2167,91 +2327,6 @@
       "relation": "calls"
     },
     {
-      "from": "src/context/AiContextGenerator.ts::generate",
-      "to": "src/context/AiContextGenerator.ts::buildContent",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/AiContextGenerator.ts::buildContent",
-      "to": "src/context/FileSummarizer.ts::getSummaries",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/AiContextGenerator.ts::buildContent",
-      "to": "src/graph/CodeGraphBuilder.ts::getGraph",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/AiContextGenerator.ts::buildContent",
-      "to": "src/context/AiContextGenerator.ts::buildFolderTree",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/AiContextGenerator.ts::buildContent",
-      "to": "src/context/AiContextGenerator.ts::findHighImpactFiles",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/AiContextGenerator.ts::buildContent",
-      "to": "src/ResultStore.ts::get",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/AiContextGenerator.ts::findHighImpactFiles",
-      "to": "src/graph/ImpactAnalyzer.ts::blastRadiusForFile",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/AiContextGenerator.ts::buildFolderTree",
-      "to": "src/context/AiContextGenerator.ts::isSourceFile",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/AiContextGenerator.ts::buildFolderTree",
-      "to": "src/graph/LanguageParser.ts::walk",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/AiContextGenerator.ts::buildFolderTree",
-      "to": "src/ResultStore.ts::get",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/ContextPicker.ts::buildContext",
-      "to": "src/graph/CodeGraphBuilder.ts::getGraph",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/ContextPicker.ts::buildContext",
-      "to": "src/context/FileSummarizer.ts::getSummaries",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/ContextPicker.ts::buildContext",
-      "to": "src/graph/ImpactAnalyzer.ts::analyze",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/ContextPicker.ts::buildContext",
-      "to": "src/AnalysisOrchestrator.ts::analyze",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/ContextPicker.ts::buildLightContext",
-      "to": "src/graph/CodeGraphBuilder.ts::getGraph",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/ContextPicker.ts::buildLightContext",
-      "to": "src/context/FileSummarizer.ts::formatForAi",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/ContextPicker.ts::buildLightContext",
-      "to": "src/ResultStore.ts::get",
-      "relation": "calls"
-    },
-    {
       "from": "src/context/FileSummarizer.ts::summarizeWorkspace",
       "to": "src/context/FileSummarizer.ts::loadCache",
       "relation": "calls"
@@ -2284,11 +2359,6 @@
     {
       "from": "src/context/FileSummarizer.ts::getSummaries",
       "to": "src/context/FileSummarizer.ts::loadCache",
-      "relation": "calls"
-    },
-    {
-      "from": "src/context/FileSummarizer.ts::formatForAi",
-      "to": "src/context/FileSummarizer.ts::getSummaries",
       "relation": "calls"
     },
     {

@@ -1,53 +1,53 @@
 # Codescape — Project Issues Report
 
-Generated: 19/06/2026, 21:17:26
+Generated: 20/06/2026, 01:33:32
 
-Total issues: 77 across 12 file(s)
+Total issues: 79 across 14 file(s)
 
-Severity: hint 42 · warning 14 · error 21
-Category: code-smell 50 · security 21 · duplicate 6
+Severity: hint 43 · warning 15 · error 21
+Category: code-smell 51 · security 22 · duplicate 6
 
 ## src/extension.ts — 16 issue(s)
 
 ### activate
 
-- **L46** [hint/code-smell] console statement found — remove before shipping.
+- **L47** [hint/code-smell] console statement found — remove before shipping.
   - Fix: Use a logging library like winston or pino.
-- **L49** [hint/code-smell] console statement found — remove before shipping.
+- **L50** [hint/code-smell] console statement found — remove before shipping.
   - Fix: Use a logging library like winston or pino.
-- **L52** [hint/code-smell] console statement found — remove before shipping.
+- **L53** [hint/code-smell] console statement found — remove before shipping.
   - Fix: Use a logging library like winston or pino.
 
 ### activateInternal
 
-- **L57** [warning/code-smell] Function is 381 lines long — split it into smaller functions.
+- **L58** [warning/code-smell] Function is 402 lines long — split it into smaller functions.
   - Fix: Aim for under 30 lines per function.
-- **L72** [hint/code-smell] console statement found — remove before shipping.
-  - Fix: Use a logging library like winston or pino.
 - **L73** [hint/code-smell] console statement found — remove before shipping.
   - Fix: Use a logging library like winston or pino.
 - **L74** [hint/code-smell] console statement found — remove before shipping.
   - Fix: Use a logging library like winston or pino.
-- **L129** [hint/code-smell] console statement found — remove before shipping.
+- **L75** [hint/code-smell] console statement found — remove before shipping.
   - Fix: Use a logging library like winston or pino.
-- **L134** [error/security] SQL query built with string interpolation — SQL injection risk.
+- **L136** [hint/code-smell] console statement found — remove before shipping.
+  - Fix: Use a logging library like winston or pino.
+- **L141** [error/security] SQL query built with string interpolation — SQL injection risk.
   - Fix: Use parameterized queries: db.query("SELECT * FROM users WHERE id = ?", [id])
-- **L177** [warning/duplicate] Duplicate block (6+ lines) also at line 203.
+- **L184** [warning/duplicate] Duplicate block (6+ lines) also at line 210.
   - Fix: Extract shared logic into a reusable function.
-- **L380** [hint/code-smell] Magic number — name it so the intent is clear.
+- **L402** [hint/code-smell] Magic number — name it so the intent is clear.
   - Fix: const SECONDS_PER_DAY = 86400;
-- **L394** [error/security] SQL query built with string interpolation — SQL injection risk.
+- **L416** [error/security] SQL query built with string interpolation — SQL injection risk.
   - Fix: Use parameterized queries: db.query("SELECT * FROM users WHERE id = ?", [id])
-- **L422** [error/security] SQL query built with string interpolation — SQL injection risk.
+- **L444** [error/security] SQL query built with string interpolation — SQL injection risk.
   - Fix: Use parameterized queries: db.query("SELECT * FROM users WHERE id = ?", [id])
-- **L432** [error/security] SQL query built with string interpolation — SQL injection risk.
+- **L454** [error/security] SQL query built with string interpolation — SQL injection risk.
   - Fix: Use parameterized queries: db.query("SELECT * FROM users WHERE id = ?", [id])
-- **L435** [hint/code-smell] Magic number — name it so the intent is clear.
+- **L457** [hint/code-smell] Magic number — name it so the intent is clear.
   - Fix: const SECONDS_PER_DAY = 86400;
 
 ### deactivate
 
-- **L441** [hint/code-smell] console statement found — remove before shipping.
+- **L463** [hint/code-smell] console statement found — remove before shipping.
   - Fix: Use a logging library like winston or pino.
 
 ## src/scanners/AiScanner.ts — 15 issue(s)
@@ -190,6 +190,25 @@ Category: code-smell 50 · security 21 · duplicate 6
   - Fix: const SECONDS_PER_DAY = 86400;
 - **L186** [warning/code-smell] Use === or !== to avoid silent type coercion bugs.
 
+## src/context/FileSummarizer.ts — 4 issue(s)
+
+### summarizeWorkspace
+
+- **L69** [hint/code-smell] Magic number — name it so the intent is clear.
+  - Fix: const SECONDS_PER_DAY = 86400;
+
+### saveCache
+
+- **L123** [hint/code-smell] console statement found — remove before shipping.
+  - Fix: Use a logging library like winston or pino.
+
+### hashString
+
+- **L132** [hint/code-smell] Magic number — name it so the intent is clear.
+  - Fix: const SECONDS_PER_DAY = 86400;
+- **L133** [hint/code-smell] Magic number — name it so the intent is clear.
+  - Fix: const SECONDS_PER_DAY = 86400;
+
 ## src/rules/pythonRules.ts — 4 issue(s)
 
 ### (file scope)
@@ -202,32 +221,20 @@ Category: code-smell 50 · security 21 · duplicate 6
   - Fix: const SECONDS_PER_DAY = 86400;
 - **L155** [error/code-smell] debugger statement left in code — remove it.
 
-## src/context/FileSummarizer.ts — 4 issue(s)
-
-### summarizeWorkspace
-
-- **L69** [hint/code-smell] Magic number — name it so the intent is clear.
-  - Fix: const SECONDS_PER_DAY = 86400;
-
-### saveCache
-
-- **L136** [hint/code-smell] console statement found — remove before shipping.
-  - Fix: Use a logging library like winston or pino.
-
-### hashString
-
-- **L145** [hint/code-smell] Magic number — name it so the intent is clear.
-  - Fix: const SECONDS_PER_DAY = 86400;
-- **L146** [hint/code-smell] Magic number — name it so the intent is clear.
-  - Fix: const SECONDS_PER_DAY = 86400;
-
 ## src/providers/DashboardProvider.ts — 2 issue(s)
 
 ### buildHtml
 
-- **L132** [hint/code-smell] Magic number — name it so the intent is clear.
+- **L126** [hint/code-smell] Magic number — name it so the intent is clear.
   - Fix: const SECONDS_PER_DAY = 86400;
-- **L161** [hint/code-smell] Magic number — name it so the intent is clear.
+- **L156** [hint/code-smell] Magic number — name it so the intent is clear.
+  - Fix: const SECONDS_PER_DAY = 86400;
+
+## src/reports/UnderstandingGenerator.ts — 1 issue(s)
+
+### summarizeFileSymbols
+
+- **L196** [hint/code-smell] Magic number — name it so the intent is clear.
   - Fix: const SECONDS_PER_DAY = 86400;
 
 ## src/scanners/DuplicateScanner.ts — 1 issue(s)
@@ -236,6 +243,13 @@ Category: code-smell 50 · security 21 · duplicate 6
 
 - **L59** [hint/code-smell] Magic number — name it so the intent is clear.
   - Fix: const SECONDS_PER_DAY = 86400;
+
+## src/graph/ListPanel.ts — 1 issue(s)
+
+### makeNonce
+
+- **L180** [warning/security] Math.random() is not cryptographically secure.
+  - Fix: Use crypto.randomBytes() or crypto.randomUUID() for security-sensitive values.
 
 ## src/providers/CodeActionsProvider.ts — 1 issue(s)
 
