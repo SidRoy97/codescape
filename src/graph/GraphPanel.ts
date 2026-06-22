@@ -45,7 +45,7 @@ export class GraphPanel {
       // Set the HTML once. The webview posts "ready" when its script has
       // loaded, and only then do we send the data — this avoids a race where
       // the render message arrives before the listener exists.
-      this.panel.webview.html = this.buildHtml();
+      this.panel.webview.html = this.buildHtml(this.panel.webview);
     } else {
       // Panel already exists and its listener is live, so render immediately.
       this.renderImpact(nodeId);
@@ -58,9 +58,31 @@ export class GraphPanel {
   private renderImpact(nodeId: string): void {
     if (!this.panel) return;
 
-    const analyzer = new ImpactAnalyzer(this.getGraph());
+    const graph = this.getGraph();
+
+    // Diagnose the two silent-failure cases instead of just returning. I send
+    // a clear status to the webview so the panel never sits on the placeholder
+    // without explanation, and log details for the dev console.
+    if (graph.nodes.length === 0) {
+      console.warn('[Codescape] Impact: graph is empty when rendering', nodeId);
+      this.panel.webview.postMessage({
+        type: 'status',
+        text: 'The code graph is empty. Run an analysis or reopen the file, then click again.',
+      });
+      return;
+    }
+
+    const analyzer = new ImpactAnalyzer(graph);
     const impact   = analyzer.analyze(nodeId);
-    if (!impact) return;
+    if (!impact) {
+      console.warn('[Codescape] Impact: node id not found in graph:', nodeId,
+        '\nAvailable ids sample:', graph.nodes.slice(0, 10).map(n => n.id));
+      this.panel.webview.postMessage({
+        type: 'status',
+        text: `Could not find "${nodeId}" in the current graph. The graph may have been rebuilt — reopen the file and click again.`,
+      });
+      return;
+    }
 
     // Data travels as a structured message — never concatenated into HTML.
     this.panel.webview.postMessage({ type: 'render', impact });
@@ -115,14 +137,22 @@ export class GraphPanel {
   // Build the webview HTML shell. Contains no code data — only the
   // CSP, the Cytoscape script tag, and the rendering script. All data
   // arrives later by message and is rendered via the Cytoscape API.
-  private buildHtml(): string {
+  private buildHtml(webview: vscode.Webview): string {
     const nonce = this.makeNonce();
-    const cytoscapeUrl = 'https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js';
+
+    // Load Cytoscape from the bundled copy in node_modules, not a CDN, so the
+    // graph works offline and never depends on network access.
+    const cytoscapeUrl = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'node_modules', 'cytoscape', 'dist', 'cytoscape.min.js'),
+    );
 
     const csp = [
       `default-src 'none'`,
-      `script-src 'nonce-${nonce}' https://cdnjs.cloudflare.com`,
-      `style-src 'nonce-${nonce}'`,
+      `script-src 'nonce-${nonce}' ${webview.cspSource}`,
+      // Inline style attributes (e.g. display:none) cannot carry a nonce. The
+      // webview HTML is fully controlled by us and no user content is injected
+      // as markup, so allowing inline styles here is safe.
+      `style-src 'nonce-${nonce}' 'unsafe-inline'`,
     ].join('; ');
 
     return /* html */ `<!DOCTYPE html>
@@ -146,26 +176,66 @@ export class GraphPanel {
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
   let cy = null;
+  let pendingImpact = null;
 
   // All rendering goes through the Cytoscape API. We never set innerHTML
   // with code data, so a malicious symbol name cannot inject markup.
   window.addEventListener('message', event => {
     const message = event.data;
-    if (!message || message.type !== 'render') return;
-    renderImpact(message.impact);
+    if (!message) return;
+    // The extension can send a plain status string for the error/empty cases.
+    if (message.type === 'status') {
+      document.getElementById('title').textContent = message.text;
+      return;
+    }
+    if (message.type !== 'render') return;
+    // Hold the data until the Cytoscape library is actually loaded, then draw.
+    pendingImpact = message.impact;
+    tryRender();
   });
 
-  // Tell the extension the listener is live. It then sends the impact data,
-  // which avoids a race where data is posted before this script has loaded.
-  vscode.postMessage({ type: 'ready' });
+  // Cytoscape loads as a separate bundled <script>. It may not be ready the
+  // instant this inline script runs, so I only signal "ready" and render once
+  // the library is present. I poll briefly for it.
+  let waited = 0;
+  function waitForCytoscape() {
+    if (typeof cytoscape !== 'undefined') {
+      vscode.postMessage({ type: 'ready' });
+      tryRender();
+      return;
+    }
+    waited += 100;
+    if (waited > 5000) {
+      // The library never loaded. Tell the user instead of leaving the
+      // placeholder sitting there silently.
+      document.getElementById('title').textContent =
+        'Could not load the graph library. Try reopening the panel.';
+      return;
+    }
+    setTimeout(waitForCytoscape, 100);
+  }
+  waitForCytoscape();
+
+  // Draw the held impact, if any, once the library is available.
+  function tryRender() {
+    if (!pendingImpact || typeof cytoscape === 'undefined') return;
+    try {
+      renderImpact(pendingImpact);
+      pendingImpact = null;
+    } catch (e) {
+      document.getElementById('title').textContent = 'Could not render the graph: ' + e;
+    }
+  }
 
   function renderImpact(impact) {
     const elements = [];
 
     // Build a two-line label: symbol name on top, file basename below.
+    // I use fromCharCode(10) for the line break so this template literal does
+    // not emit a raw newline into the webview script (which breaks the string).
     function labelFor(node) {
       const base = node.file ? node.file.split('/').pop() : '';
-      return node.name + (base ? '\n' + base : '');
+      return node.name + (base ? String.fromCharCode(10) + base : '');
     }
 
     // Centre node — the symbol being changed.
@@ -219,15 +289,27 @@ export class GraphPanel {
       ],
     });
 
-    // Single click re-centers the graph on the clicked node.
-    cy.on('tap', 'node', evt => {
-      vscode.postMessage({ type: 'focus', nodeId: evt.target.id() });
-    });
+    // Cytoscape has no real double-click event, so I detect it myself: two
+    // taps on the same node within 300ms open the file; a single tap recenters.
+    let lastTapId = null;
+    let lastTapTime = 0;
 
-    // Double click opens that symbol's file at its definition line.
-    // The extension validates the id and resolves the line itself.
-    cy.on('dbltap', 'node', evt => {
-      vscode.postMessage({ type: 'open', nodeId: evt.target.id() });
+    cy.on('tap', 'node', evt => {
+      const id = evt.target.id();
+      const now = Date.now();
+
+      if (id === lastTapId && now - lastTapTime < 300) {
+        // Second quick tap on the same node — open its file.
+        vscode.postMessage({ type: 'open', nodeId: id });
+        lastTapId = null;
+        lastTapTime = 0;
+        return;
+      }
+
+      // First tap — re-center, and remember it so a quick second tap counts.
+      lastTapId = id;
+      lastTapTime = now;
+      vscode.postMessage({ type: 'focus', nodeId: id });
     });
   }
 </script>

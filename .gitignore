@@ -5,3 +5,8 @@ node_modules/
 *.js.map
 .DS_Store
 .codesec-summaries.json
+# Codescape generated output files
+codescape-issues.md
+codescape-issues.json
+codescape-understanding.json
+codescape.json

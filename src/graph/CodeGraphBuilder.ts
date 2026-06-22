@@ -140,6 +140,16 @@ export class CodeGraphBuilder {
     const edges: CodeEdge[] = [];
     const seen = new Set<string>();
 
+    // Receivers that are language/runtime built-ins or config objects, never
+    // project classes. A call like JSON.parse() or cfg.get() has one of these
+    // as its receiver, so I drop it instead of linking it to a project symbol
+    // of the same name (e.g. our own ResultStore.get or LanguageParser.parse).
+    const BUILTIN_RECEIVERS = new Set([
+      'json', 'object', 'array', 'math', 'console', 'promise', 'date',
+      'number', 'string', 'boolean', 'map', 'set', 'symbol', 'reflect',
+      'window', 'document', 'process', 'cfg', 'config',
+    ]);
+
     // Map a lowercased receiver variable to a class name by naming convention:
     // "analyzer" → "ImpactAnalyzer", "store" → "ResultStore", "dashboard" →
     // "DashboardProvider". A class matches if its lowercased name contains the
@@ -159,6 +169,10 @@ export class CodeGraphBuilder {
     };
 
     for (const call of pendingCalls) {
+      // Skip calls on known built-in/runtime receivers — these are library
+      // calls (JSON.parse, Map.get, cfg.get), not calls into project symbols.
+      if (call.receiver && BUILTIN_RECEIVERS.has(call.receiver.toLowerCase())) continue;
+
       const targetIds = nameToIds.get(call.calleeName);
       if (!targetIds) continue;
 
