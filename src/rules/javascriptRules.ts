@@ -33,14 +33,30 @@ const RULES: Rule[] = [
     severity: 'warning', category: 'security',
     message: 'document.write() is a security risk and blocks page rendering.' },
 
-  // SQL built by string concat = injection — covers common Node DB patterns
+  // SQL built inside a DB call with a variable = injection. The verb
+  // alternation is grouped so "|" cannot leak into bare words — the previous
+  // version omitted the group, so the pattern was effectively
+  // "...SELECT" OR "INSERT" OR "UPDATE" OR "DELETE...", which matched any
+  // identifier containing "update"/"insert"/"delete" (e.g. cfg.update(...)).
+  // Now it requires a query verb, a string opener, a SQL keyword, and a
+  // ${...} interpolation, all together.
   { id: 'js:sql-injection',
-    pattern: /(?:query|execute|run)\s*\(\s*[`'"]\s*SELECT|INSERT|UPDATE|DELETE[^`'"]*\$\{/gi,
+    pattern: /(?:query|execute|executeQuery|executeUpdate|run)\s*\(\s*[`'"][^`'"]*\b(?:SELECT|INSERT|UPDATE|DELETE)\b[^`'"]*\$\{/gi,
     severity: 'error', category: 'security',
     message: 'SQL query built with string interpolation — SQL injection risk.',
     suggestion: 'Use parameterized queries: db.query("SELECT * FROM users WHERE id = ?", [id])' },
 
-  // Template literal SQL is still injection if it includes variables
+  // SQL built by string concatenation inside a DB call — the other common
+  // injection form (e.g. execute("SELECT ... " + userId)).
+  { id: 'js:sql-injection-concat',
+    pattern: /(?:query|execute|executeQuery|executeUpdate|run)\s*\(\s*[`'"][^`'"]*\b(?:SELECT|INSERT|UPDATE|DELETE)\b[^`'"]*[`'"]\s*\+/gi,
+    severity: 'error', category: 'security',
+    message: 'SQL query built with string concatenation — SQL injection risk.',
+    suggestion: 'Use parameterized queries: db.query("SELECT * FROM users WHERE id = ?", [id])' },
+
+  // Template literal SQL is still injection if it includes variables. The
+  // keyword alternation is already grouped here, so this rule was correct;
+  // it requires a backtick, a leading SQL keyword, and a ${...}.
   { id: 'js:sql-template-literal',
     pattern: /`\s*(?:SELECT|INSERT|UPDATE|DELETE|DROP|CREATE)\s[^`]*\$\{/gi,
     severity: 'error', category: 'security',
@@ -85,7 +101,7 @@ const RULES: Rule[] = [
 
   // MD5 is broken — don't use for passwords or security
   { id: 'js:weak-hash-md5',
-    pattern: /(?:md5|MD5)\s*\(/g,
+    pattern: /createHash\s*\(\s*['"`]md5['"`]\s*\)/gi,
     severity: 'error', category: 'security',
     message: 'MD5 is cryptographically broken — do not use for security purposes.',
     suggestion: 'Use bcrypt for passwords, or SHA-256 (crypto.createHash("sha256")) for checksums.' },
@@ -113,29 +129,6 @@ const RULES: Rule[] = [
     message: 'Cookie set without httpOnly flag — JavaScript can read it.',
     suggestion: 'Add httpOnly: true to prevent XSS-based session theft.' },
 
-  // Cookie without secure flag is sent over plain HTTP
-  { id: 'js:cookie-no-secure',
-    pattern: /(?:res\.cookie|setCookie)\s*\([^)]*\)\s*(?!.*secure)/g,
-    severity: 'warning', category: 'security',
-    message: 'Cookie set without secure flag — will be sent over plain HTTP.',
-    suggestion: 'Add secure: true so the cookie is only sent over HTTPS.' },
-
-  // --- Security: Input validation ---
-
-  // req.body used directly without validation is dangerous in APIs
-  { id: 'js:no-input-validation',
-    pattern: /req\.body\.\w+\s*(?!.*(?:trim|validate|sanitize|escape|parseInt|parseFloat|Number|Boolean|match|test|replace))/g,
-    severity: 'warning', category: 'security',
-    message: 'Request body field used without visible validation or sanitization.',
-    suggestion: 'Validate with zod, joi, or express-validator before using user input.' },
-
-  // RegExp from user input can be used for ReDoS attacks
-  { id: 'js:regex-dos',
-    pattern: /new\s+RegExp\s*\(\s*(?:req\.|params\.|query\.|body\.)\w+/g,
-    severity: 'error', category: 'security',
-    message: 'RegExp built from user input — ReDoS (regex denial of service) risk.',
-    suggestion: 'Never build regular expressions from user-supplied strings.' },
-
   // --- Security: Prototype pollution ---
 
   // Merging user objects into existing ones can corrupt prototype chain
@@ -144,6 +137,15 @@ const RULES: Rule[] = [
     severity: 'error', category: 'security',
     message: 'Object.assign with user input can pollute the prototype chain.',
     suggestion: 'Validate and allowlist keys before merging user-supplied objects.' },
+
+  // --- Security: ReDoS ---
+
+  // RegExp from user input can be used for ReDoS attacks
+  { id: 'js:regex-dos',
+    pattern: /new\s+RegExp\s*\(\s*(?:req\.|params\.|query\.|body\.)\w+/g,
+    severity: 'error', category: 'security',
+    message: 'RegExp built from user input — ReDoS (regex denial of service) risk.',
+    suggestion: 'Never build regular expressions from user-supplied strings.' },
 
   // --- Code smells ---
 
@@ -156,7 +158,7 @@ const RULES: Rule[] = [
 
   // debugger stops execution in production
   { id: 'js:no-debugger',
-    pattern: /\bdebugger\b/g,
+    pattern: /\bdebugger\s*;/g,
     severity: 'error', category: 'code-smell',
     message: 'debugger statement left in code — remove it.' },
 
@@ -185,14 +187,22 @@ const RULES: Rule[] = [
     pattern: /\/\/\s*(TODO|FIXME|HACK|XXX)/gi,
     severity: 'info', category: 'code-smell',
     message: 'TODO/FIXME comment — move this to your issue tracker.' },
-
-  // Magic numbers have no context — 86400 tells you nothing
-  { id: 'js:magic-number',
-    pattern: /(?<![.\w])(?!0\b|1\b|-1\b)\d{3,}(?!\s*[)\]},;:])/g,
-    severity: 'hint', category: 'code-smell',
-    message: 'Magic number — name it so the intent is clear.',
-    suggestion: 'const SECONDS_PER_DAY = 86400;' },
 ];
+
+// I skip lines that are clearly rule/pattern definitions rather than real code
+// to analyze. Without this, a security or linter file (this project included)
+// flags its OWN detection patterns: the line `pattern: /\beval\s*\(/` literally
+// contains "eval(", and the SQL/debugger patterns contain their own keywords.
+// These are descriptions of code to find, not code that runs, so scanning them
+// produces pure false positives. Real `eval(...)` / `debugger;` / SQL calls do
+// not match these shapes and are still fully detected.
+function isRuleDefinitionLine(line: string): boolean {
+  const t = line.trim();
+  if (/^pattern:\s*\//.test(t)) return true;                 // pattern: /.../,
+  if (/^\{?\s*id:\s*['"][a-z]+:/.test(t)) return true;        // { id: 'js:...',
+  if (/^(message|suggestion):\s*['"]/.test(t)) return true;   // message: '...'
+  return false;
+}
 
 // Run every rule against every line and return all matches as Issues
 export function runJavaScriptRules(lines: string[]): Issue[] {
@@ -203,6 +213,10 @@ export function runJavaScriptRules(lines: string[]): Issue[] {
 
     // Skip pure comment lines to avoid false positives (except TODO lines)
     if (line.trim().startsWith('//') && !/TODO|FIXME|HACK|XXX/i.test(line)) continue;
+
+    // Skip rule-definition lines so the scanner does not flag detection
+    // patterns (its own, or any linter/security tooling it analyzes).
+    if (isRuleDefinitionLine(line)) continue;
 
     for (const rule of RULES) {
       // Reset regex state — global flag keeps position between calls without this
@@ -223,6 +237,9 @@ export function runJavaScriptRules(lines: string[]): Issue[] {
           suggestion: rule.suggestion,
           source:     'static',
         });
+
+        // Guard against zero-width matches causing an infinite loop.
+        if (match.index === rule.pattern.lastIndex) rule.pattern.lastIndex++;
       }
     }
   }

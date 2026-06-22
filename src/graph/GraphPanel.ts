@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { ImpactAnalyzer } from './ImpactAnalyzer';
 import { CodeGraph } from './CodeGraphTypes';
 
-// Single job: show the impact of one symbol as an interactive graph.
+// this shows the impact of one symbol as an interactive graph.
 // This file owns every cross-site-scripting defence in the feature:
 //   1. A strict Content Security Policy with a per-render nonce.
 //   2. Code data is sent as a postMessage payload, never baked into HTML,
@@ -328,13 +329,10 @@ export class GraphPanel {
 </html>`;
   }
 
-  // A random nonce ties the CSP to exactly the scripts we emit.
+  // A random nonce ties the CSP to exactly the scripts we emit. I use the
+  // crypto module rather than Math.random so the nonce is unpredictable — a
+  // CSP nonce that an attacker could guess would defeat the policy.
   private makeNonce(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let text = '';
-    for (let i = 0; i < 32; i++) {
-      text += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return text;
+    return crypto.randomBytes(16).toString('base64');
   }
 }

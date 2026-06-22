@@ -7,7 +7,7 @@ import { CodeGraph, CodeNode, CodeEdge } from './CodeGraphTypes';
 const FILE_GLOB   = '**/*.{js,jsx,ts,tsx,py,java}';
 const IGNORE_GLOB = '{**/node_modules/**,**/dist/**,**/out/**,**/build/**,**/*.min.js}';
 
-// Single job: build a CodeGraph for the workspace by parsing every
+// build a CodeGraph for the workspace by parsing every
 // supported file and connecting calls to the symbols they reference.
 // It depends on LanguageParser (injected) and the data types — nothing else.
 export class CodeGraphBuilder {

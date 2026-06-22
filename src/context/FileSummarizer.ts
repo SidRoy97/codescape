@@ -16,7 +16,7 @@ const SUMMARY_PROMPT = `In exactly ONE sentence under 20 words, describe what th
 Start with a verb. Focus on single responsibility.
 Return only the sentence — no filename, no markdown, no extra text.`;
 
-// Single job: generate and cache a one-line AI summary per file.
+// generate and cache a one-line AI summary per file.
 export class FileSummarizer {
   private cache = new Map<string, FileSummary>();
   private loaded = false;

@@ -13,49 +13,42 @@ const RULES: Rule[] = [
 
   // ─── Security: XSS ────────────────────────────────────────────────────────
 
-  // dangerouslySetInnerHTML renders raw HTML — XSS if value includes user input
   { id: 'react:dangerous-html',
     pattern: /dangerouslySetInnerHTML\s*=\s*\{/g,
     severity: 'error', category: 'security',
     message: 'dangerouslySetInnerHTML can cause XSS if content is not sanitized.',
     suggestion: 'Sanitize first: { __html: DOMPurify.sanitize(html) }' },
 
-  // innerHTML directly on a ref bypasses React and is an XSS vector
   { id: 'react:ref-inner-html',
     pattern: /(?:ref|current)\s*\.\s*innerHTML\s*=/g,
     severity: 'error', category: 'security',
     message: 'Setting innerHTML on a ref can cause XSS.',
     suggestion: 'Use ref.current.textContent for plain text, or sanitize with DOMPurify.' },
 
-  // eval() in a React component is just as dangerous as anywhere else
   { id: 'react:no-eval',
     pattern: /\beval\s*\(/g,
     severity: 'error', category: 'security',
     message: 'eval() executes arbitrary code — severe XSS risk in React.',
     suggestion: 'Restructure to avoid dynamic code execution.' },
 
-  // new Function() is eval() in disguise
   { id: 'react:no-new-function',
     pattern: /new\s+Function\s*\(/g,
     severity: 'error', category: 'security',
     message: 'new Function() executes arbitrary code — same risk as eval().',
     suggestion: 'Restructure to avoid dynamic code execution.' },
 
-  // href with javascript: scheme runs code when the link is clicked
   { id: 'react:href-javascript',
     pattern: /href\s*=\s*\{?\s*['"`]javascript:/gi,
     severity: 'error', category: 'security',
     message: 'href with javascript: scheme is an XSS vector.',
     suggestion: 'Use onClick handler instead: <button onClick={fn}>click</button>' },
 
-  // User-controlled href can be set to javascript: at runtime
   { id: 'react:href-user-input',
     pattern: /href\s*=\s*\{(?!['"`]https?)[^}]*(?:props\.|state\.|params\.|query\.)\w+/g,
     severity: 'warning', category: 'security',
     message: 'href value comes from props/state — could be set to javascript: by attacker.',
     suggestion: 'Validate URL starts with https:// before using as href.' },
 
-  // target="_blank" without rel lets the opened page control the opener
   { id: 'react:target-blank',
     pattern: /target\s*=\s*['"`]_blank['"`](?!.*rel)/g,
     severity: 'warning', category: 'security',
@@ -64,21 +57,18 @@ const RULES: Rule[] = [
 
   // ─── Security: Sensitive data exposure ────────────────────────────────────
 
-  // Hardcoded API keys in React components end up in the browser bundle
   { id: 'react:hardcoded-secret',
     pattern: /(?:apiKey|api_key|secret|password|token|auth)\s*[:=]\s*['"`][^'"`\s]{6,}['"`]/gi,
     severity: 'error', category: 'security',
     message: 'Hardcoded secret in React code — will be visible in the browser bundle.',
     suggestion: 'Use environment variables: process.env.REACT_APP_MY_KEY (never secret keys in frontend).' },
 
-  // REACT_APP_ env vars are embedded in the bundle — visible to all users
   { id: 'react:secret-in-env',
     pattern: /process\.env\.REACT_APP_(?:SECRET|PASSWORD|PRIVATE|API_KEY|TOKEN)\b/gi,
     severity: 'error', category: 'security',
     message: 'Secret in REACT_APP_ env var — these are embedded in the public JS bundle.',
     suggestion: 'Secrets must live on the server. Call a backend API that holds the secret.' },
 
-  // Logging sensitive state to console leaks it in DevTools
   { id: 'react:console-log-sensitive',
     pattern: /console\.\w+\s*\([^)]*(?:password|token|secret|auth|credit|ssn|dob)\w*/gi,
     severity: 'warning', category: 'security',
@@ -87,21 +77,18 @@ const RULES: Rule[] = [
 
   // ─── Security: API calls ──────────────────────────────────────────────────
 
-  // Fetch URL built from user input = SSRF or open redirect risk
   { id: 'react:fetch-user-input',
     pattern: /fetch\s*\(\s*(?:`[^`]*\$\{|['"][^'"]*['"]?\s*\+)\s*(?:props\.|state\.|params\.|input\.|query\.)\w+/g,
     severity: 'error', category: 'security',
     message: 'fetch() URL includes user-controlled data — SSRF or open redirect risk.',
     suggestion: 'Validate the URL against an allowlist before fetching.' },
 
-  // axios with user-controlled URL has the same problem
   { id: 'react:axios-user-input',
     pattern: /axios\.\w+\s*\(\s*(?:`[^`]*\$\{|['"][^'"]*['"]?\s*\+)\s*(?:props\.|state\.|params\.)\w+/g,
     severity: 'warning', category: 'security',
     message: 'axios request URL includes user-controlled data.',
     suggestion: 'Validate the URL against an allowlist before making the request.' },
 
-  // Fetch without error handling — failed requests are silently ignored
   { id: 'react:fetch-no-error-check',
     pattern: /\.then\s*\(\s*(?:res|response)\s*=>\s*(?:res|response)\.json\(\)\s*\)(?!\s*\.catch)/g,
     severity: 'warning', category: 'security',
@@ -110,14 +97,12 @@ const RULES: Rule[] = [
 
   // ─── Security: Storage ────────────────────────────────────────────────────
 
-  // localStorage is accessible to any JS on the page — XSS can steal it
   { id: 'react:sensitive-in-localstorage',
     pattern: /localStorage\.setItem\s*\([^)]*(?:token|password|secret|auth|session)/gi,
     severity: 'error', category: 'security',
     message: 'Sensitive data stored in localStorage — accessible to any JS on the page.',
     suggestion: 'Use httpOnly cookies for tokens. localStorage is not safe for sensitive data.' },
 
-  // sessionStorage has the same XSS vulnerability as localStorage
   { id: 'react:sensitive-in-sessionstorage',
     pattern: /sessionStorage\.setItem\s*\([^)]*(?:token|password|secret|auth|session)/gi,
     severity: 'warning', category: 'security',
@@ -126,36 +111,31 @@ const RULES: Rule[] = [
 
   // ─── Security: Input handling ─────────────────────────────────────────────
 
-  // Regex built from user input = ReDoS vulnerability
   { id: 'react:regex-from-input',
     pattern: /new\s+RegExp\s*\(\s*(?:props\.|state\.|e\.target\.value|input)/g,
     severity: 'error', category: 'security',
     message: 'RegExp built from user input — ReDoS (regex denial of service) risk.',
     suggestion: 'Never build regular expressions from user-supplied strings.' },
 
-  // postMessage without origin check accepts messages from any page
   { id: 'react:postmessage-no-origin',
     pattern: /window\.addEventListener\s*\(\s*['"]message['"]\s*,[^)]*\)(?![^{]*event\.origin)/g,
     severity: 'error', category: 'security',
     message: 'postMessage listener without origin validation — any page can send messages.',
     suggestion: 'Always check event.origin before processing: if (event.origin !== "https://trusted.com") return;' },
 
-  // ─── Rules of Hooks (errors — break React rendering) ─────────────────────
+  // ─── Rules of Hooks ───────────────────────────────────────────────────────
 
-  // Hooks in conditionals run different numbers of times across renders
   { id: 'react:hook-in-condition',
     pattern: /if\s*\([^)]*\)\s*\{[^}]*use[A-Z]\w+\s*\(/g,
     severity: 'error', category: 'code-smell',
     message: 'Hook called inside a condition — violates Rules of Hooks.',
     suggestion: 'Move the hook to top level. Use conditional logic inside the hook.' },
 
-  // Same problem in loops
   { id: 'react:hook-in-loop',
     pattern: /(?:for|while)\s*\([^)]*\)\s*\{[^}]*use[A-Z]\w+\s*\(/g,
     severity: 'error', category: 'code-smell',
     message: 'Hook called inside a loop — violates Rules of Hooks.' },
 
-  // async callback returns Promise not a cleanup function
   { id: 'react:async-effect',
     pattern: /useEffect\s*\(\s*async\s*\(/g,
     severity: 'error', category: 'code-smell',
@@ -164,21 +144,18 @@ const RULES: Rule[] = [
 
   // ─── useEffect pitfalls ───────────────────────────────────────────────────
 
-  // No dep array = runs after every render — almost always unintentional
   { id: 'react:effect-no-deps',
     pattern: /useEffect\s*\(\s*\(\s*\)\s*=>/g,
     severity: 'warning', category: 'code-smell',
     message: 'useEffect with no dependency array runs after every render.',
     suggestion: 'Add [] to run once, or [dep] to run when dep changes.' },
 
-  // Timers and listeners without cleanup = memory leak
   { id: 'react:missing-cleanup',
     pattern: /useEffect\s*\(\s*\(\s*\)\s*=>\s*\{[^}]*(?:setInterval|setTimeout|addEventListener)\s*\(/g,
     severity: 'warning', category: 'code-smell',
     message: 'useEffect sets up timer/listener but may be missing cleanup.',
     suggestion: 'Return cleanup: return () => clearInterval(id)' },
 
-  // Fetch in useEffect without abort controller = state update on unmounted component
   { id: 'react:effect-fetch-no-cleanup',
     pattern: /useEffect\s*\(\s*\(\s*\)\s*=>\s*\{[^}]*fetch\s*\(/g,
     severity: 'warning', category: 'security',
@@ -187,14 +164,12 @@ const RULES: Rule[] = [
 
   // ─── State mutations ──────────────────────────────────────────────────────
 
-  // Direct state assignment bypasses React's update queue
   { id: 'react:direct-state-mutation',
     pattern: /this\.state\.\w+\s*=/g,
     severity: 'error', category: 'code-smell',
     message: 'Direct state mutation — React won\'t re-render.',
     suggestion: 'Use setState() or the useState setter.' },
 
-  // In-place array mutation — React sees the same reference, no re-render
   { id: 'react:array-mutation',
     pattern: /(?:state|this\.state)\.\w+\.(?:push|pop|splice|sort|reverse|shift|unshift)\s*\(/g,
     severity: 'error', category: 'code-smell',
@@ -203,7 +178,6 @@ const RULES: Rule[] = [
 
   // ─── Key prop issues ──────────────────────────────────────────────────────
 
-  // Index as key breaks reconciliation when list reorders
   { id: 'react:key-as-index',
     pattern: /\.map\s*\(\s*\([^,)]+,\s*(\w+)\)\s*=>[^)]*key\s*=\s*\{?\s*\1\s*\}?/g,
     severity: 'warning', category: 'code-smell',
@@ -212,21 +186,18 @@ const RULES: Rule[] = [
 
   // ─── Re-render traps ──────────────────────────────────────────────────────
 
-  // New function reference every render = child always re-renders
   { id: 'react:inline-fn',
     pattern: /\bon[A-Z]\w+\s*=\s*\{(?:\s*\([^)]*\)\s*=>|\s*function\s*\()/g,
     severity: 'hint', category: 'code-smell',
     message: 'Inline function prop creates a new reference every render.',
     suggestion: 'Wrap with useCallback() or define the handler outside JSX.' },
 
-  // Inline style object = new reference every render
   { id: 'react:inline-style',
     pattern: /\bstyle\s*=\s*\{\s*\{/g,
     severity: 'hint', category: 'code-smell',
     message: 'Inline style object is recreated every render.',
     suggestion: 'Define as const outside component or use useMemo().' },
 
-  // Context value as inline object = all consumers re-render
   { id: 'react:context-inline',
     pattern: /\bvalue\s*=\s*\{\s*\{[^}]*\}\s*\}/g,
     severity: 'warning', category: 'code-smell',
@@ -235,20 +206,17 @@ const RULES: Rule[] = [
 
   // ─── Deprecated / removed APIs ────────────────────────────────────────────
 
-  // String refs removed in React 19
   { id: 'react:string-ref',
     pattern: /\bref\s*=\s*["'`]\w+["'`]/g,
     severity: 'error', category: 'code-smell',
     message: 'String refs removed in React 19. Use useRef() instead.' },
 
-  // findDOMNode deprecated and removed
   { id: 'react:find-dom-node',
     pattern: /ReactDOM\.findDOMNode\s*\(/g,
     severity: 'error', category: 'code-smell',
     message: 'ReactDOM.findDOMNode() is deprecated and removed in React 19.',
     suggestion: 'Use a ref: const ref = useRef(); <Component ref={ref} />' },
 
-  // These lifecycle methods were deprecated in React 16.3
   { id: 'react:will-mount',
     pattern: /componentWillMount\s*\(\s*\)/g,
     severity: 'error', category: 'code-smell',
@@ -264,13 +232,22 @@ const RULES: Rule[] = [
     severity: 'error', category: 'code-smell',
     message: 'componentWillUpdate is deprecated. Use getSnapshotBeforeUpdate.' },
 
-  // useLayoutEffect blocks painting and warns in SSR environments
   { id: 'react:use-layout-effect-ssr',
     pattern: /\buseLayoutEffect\s*\(/g,
     severity: 'info', category: 'code-smell',
     message: 'useLayoutEffect causes a warning in SSR environments.',
     suggestion: 'Use useEffect when possible, or guard with: if (typeof window !== "undefined")' },
 ];
+
+// Skip lines that are rule/pattern definitions rather than real code, so a
+// linter or security file does not flag its own detection patterns.
+function isRuleDefinitionLine(line: string): boolean {
+  const t = line.trim();
+  if (/^pattern:\s*\//.test(t)) return true;
+  if (/^\{?\s*id:\s*['"][a-z]+:/.test(t)) return true;
+  if (/^(message|suggestion):\s*['"]/.test(t)) return true;
+  return false;
+}
 
 // Run every rule against every line and return all matches as Issues
 export function runReactRules(lines: string[]): Issue[] {
@@ -280,8 +257,10 @@ export function runReactRules(lines: string[]): Issue[] {
     // Skip pure comment lines to avoid false positives
     if (lines[i].trim().startsWith('//')) continue;
 
+    // Skip rule-definition lines (see isRuleDefinitionLine).
+    if (isRuleDefinitionLine(lines[i])) continue;
+
     for (const rule of RULES) {
-      // Reset regex state — global flag keeps position between calls without this
       rule.pattern.lastIndex = 0;
       let match: RegExpExecArray | null;
 
@@ -299,6 +278,7 @@ export function runReactRules(lines: string[]): Issue[] {
           suggestion: rule.suggestion,
           source:     'static',
         });
+        if (match.index === rule.pattern.lastIndex) rule.pattern.lastIndex++;
       }
     }
   }
@@ -373,7 +353,6 @@ function detectMissingDepArrays(lines: string[]): Issue[] {
 function detectPropDrilling(lines: string[]): Issue[] {
   const issues: Issue[] = [];
 
-  // Count how many times each prop name is passed as a JSX attribute
   const propCount: Record<string, number> = {};
   for (const line of lines) {
     const matches = line.match(/\b(\w+)=\{(\w+)\}/g) ?? [];
@@ -385,7 +364,6 @@ function detectPropDrilling(lines: string[]): Issue[] {
     }
   }
 
-  // Anything passed 3+ times is likely being drilled through multiple layers
   const drilled = Object.entries(propCount).filter(([, n]) => n >= 3);
   if (drilled.length > 0) {
     issues.push({

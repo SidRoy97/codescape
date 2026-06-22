@@ -9,7 +9,7 @@ const ENTRY_POINTS = new Set([
   'dispose',
 ]);
 
-// Single job: answer impact questions by traversing an existing graph.
+// answer impact questions by traversing an existing graph.
 // Pure logic — it reads a CodeGraph and returns nodes. It does no file I/O,
 // no parsing, and no UI work, so it has no security surface of its own.
 export class ImpactAnalyzer {

@@ -13,35 +13,30 @@ const RULES: Rule[] = [
 
   // --- Security: Injection ---
 
-  // String concatenation in SQL = injection vulnerability — most common Java security bug
   { id: 'java:sql-injection',
     pattern: /Statement\s+\w+.*executeQuery\s*\([^)]*\+/g,
     severity: 'error', category: 'security',
     message: 'SQL query built with string concatenation — SQL injection risk.',
     suggestion: 'Use PreparedStatement: pstmt.setString(1, value)' },
 
-  // executeUpdate with concatenation is equally dangerous
   { id: 'java:sql-injection-update',
     pattern: /\.execute(?:Update|Query)\s*\(\s*[^)]*\+\s*\w+/g,
     severity: 'error', category: 'security',
     message: 'SQL execute call uses string concatenation — SQL injection risk.',
     suggestion: 'Use PreparedStatement with parameterized queries.' },
 
-  // String.format in SQL queries is still injection
   { id: 'java:sql-injection-format',
     pattern: /(?:execute|executeQuery|executeUpdate)\s*\(\s*String\.format\s*\(/g,
     severity: 'error', category: 'security',
     message: 'SQL query uses String.format — SQL injection risk.',
     suggestion: 'Use PreparedStatement with ? placeholders instead.' },
 
-  // Runtime.exec with user input = command injection
   { id: 'java:command-injection',
     pattern: /Runtime\s*\.\s*getRuntime\s*\(\s*\)\s*\.\s*exec\s*\(/g,
     severity: 'error', category: 'security',
     message: 'Runtime.exec() can be vulnerable to command injection.',
     suggestion: 'Validate and sanitize all inputs. Use ProcessBuilder with a fixed command array.' },
 
-  // ProcessBuilder with user-controlled args = injection
   { id: 'java:process-builder-injection',
     pattern: /new\s+ProcessBuilder\s*\([^)]*(?:request\.|getParameter|input)\w*/g,
     severity: 'error', category: 'security',
@@ -50,7 +45,6 @@ const RULES: Rule[] = [
 
   // --- Security: Deserialization ---
 
-  // Java deserialization of untrusted data can execute arbitrary code
   { id: 'java:unsafe-deserialization',
     pattern: /ObjectInputStream\s+\w+\s*=\s*new\s+ObjectInputStream/g,
     severity: 'error', category: 'security',
@@ -59,14 +53,12 @@ const RULES: Rule[] = [
 
   // --- Security: Hardcoded secrets ---
 
-  // Credentials in source get committed and leaked in version control
   { id: 'java:hardcoded-secret',
     pattern: /(?:password|secret|apiKey|token|authKey|privateKey)\s*=\s*"[^"]{4,}"/gi,
     severity: 'error', category: 'security',
     message: 'Possible hardcoded secret or credential detected.',
     suggestion: 'Use environment variables: System.getenv("MY_SECRET") or a secrets manager.' },
 
-  // JDBC connection string with password = leaked credentials
   { id: 'java:hardcoded-db-password',
     pattern: /getConnection\s*\([^)]*"[^"]*password[^"]*"[^)]*"[^"]{4,}"/gi,
     severity: 'error', category: 'security',
@@ -75,35 +67,30 @@ const RULES: Rule[] = [
 
   // --- Security: Cryptography ---
 
-  // MD5 is broken — not safe for passwords or integrity checks
   { id: 'java:weak-hash-md5',
     pattern: /MessageDigest\.getInstance\s*\(\s*"MD5"\s*\)/g,
     severity: 'error', category: 'security',
     message: 'MD5 is cryptographically broken — do not use for security.',
     suggestion: 'Use SHA-256: MessageDigest.getInstance("SHA-256")' },
 
-  // SHA1 is deprecated for security use
   { id: 'java:weak-hash-sha1',
     pattern: /MessageDigest\.getInstance\s*\(\s*"SHA-1"\s*\)/g,
     severity: 'warning', category: 'security',
     message: 'SHA-1 is deprecated for security use.',
     suggestion: 'Use SHA-256: MessageDigest.getInstance("SHA-256")' },
 
-  // DES is a broken cipher from the 1970s
   { id: 'java:weak-cipher-des',
     pattern: /Cipher\.getInstance\s*\(\s*"DES/g,
     severity: 'error', category: 'security',
     message: 'DES cipher is broken and easily cracked.',
     suggestion: 'Use AES: Cipher.getInstance("AES/GCM/NoPadding")' },
 
-  // ECB mode doesn\'t use an IV — patterns in plaintext leak into ciphertext
   { id: 'java:cipher-ecb-mode',
     pattern: /Cipher\.getInstance\s*\(\s*"[^"]*\/ECB\//g,
     severity: 'error', category: 'security',
     message: 'ECB cipher mode is insecure — identical blocks produce identical ciphertext.',
     suggestion: 'Use GCM mode: Cipher.getInstance("AES/GCM/NoPadding")' },
 
-  // java.util.Random is predictable — not for security use
   { id: 'java:insecure-random',
     pattern: /\bnew\s+Random\s*\(\s*\)/g,
     severity: 'warning', category: 'security',
@@ -112,14 +99,12 @@ const RULES: Rule[] = [
 
   // --- Security: XML / XXE ---
 
-  // DocumentBuilderFactory without disabling external entities = XXE attack
   { id: 'java:xxe-document-builder',
     pattern: /DocumentBuilderFactory\.newInstance\s*\(\s*\)/g,
     severity: 'error', category: 'security',
     message: 'XML parser may be vulnerable to XXE (XML External Entity) attacks.',
     suggestion: 'Disable external entities:\nfactory.setFeature("http://xml.org/sax/features/external-general-entities", false);\nfactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);' },
 
-  // SAXParserFactory with default settings = XXE vulnerable
   { id: 'java:xxe-sax-parser',
     pattern: /SAXParserFactory\.newInstance\s*\(\s*\)/g,
     severity: 'warning', category: 'security',
@@ -128,14 +113,12 @@ const RULES: Rule[] = [
 
   // --- Security: HTTP / Web ---
 
-  // Sending user input directly into response = XSS
   { id: 'java:xss-response-write',
     pattern: /response\.getWriter\s*\(\s*\)\.(?:print|println|write)\s*\([^)]*(?:request\.getParameter|getHeader|getQueryString)/g,
     severity: 'error', category: 'security',
     message: 'User input written directly to HTTP response — XSS vulnerability.',
     suggestion: 'Encode output with OWASP Java Encoder: Encode.forHtml(userInput)' },
 
-  // Sending user-controlled redirects can redirect to malicious sites
   { id: 'java:open-redirect',
     pattern: /sendRedirect\s*\([^)]*(?:request\.getParameter|getHeader)\s*\([^)]*\)/g,
     severity: 'error', category: 'security',
@@ -144,7 +127,6 @@ const RULES: Rule[] = [
 
   // --- Security: File ---
 
-  // File path from user input = path traversal
   { id: 'java:path-traversal',
     pattern: /new\s+File\s*\([^)]*(?:getParameter|request\.|input)\w*/g,
     severity: 'error', category: 'security',
@@ -153,46 +135,50 @@ const RULES: Rule[] = [
 
   // --- Code smells ---
 
-  // System.out belongs in scripts not production services
   { id: 'java:system-out',
     pattern: /System\.out\.(print|println|printf)\s*\(/g,
     severity: 'hint', category: 'code-smell',
     message: 'System.out found — use a logger in production.',
     suggestion: 'Use SLF4J: logger.info("message")' },
 
-  // Empty catch blocks hide bugs
   { id: 'java:empty-catch',
     pattern: /catch\s*\([^)]*\)\s*\{\s*\}/g,
     severity: 'warning', category: 'code-smell',
     message: 'Empty catch block silently swallows the exception.',
     suggestion: 'Log it: logger.error("Unexpected error", e)' },
 
-  // Catching Throwable also catches OutOfMemoryError
   { id: 'java:catch-throwable',
     pattern: /catch\s*\(\s*Throwable\s/g,
     severity: 'warning', category: 'code-smell',
     message: 'Catching Throwable also catches OutOfMemoryError.',
     suggestion: 'Catch Exception or specific exception types instead.' },
 
-  // Public mutable fields break encapsulation
   { id: 'java:public-field',
     pattern: /^\s*public\s+(?!static\s+final|class|interface|enum|void)\w+\s+\w+\s*;/gm,
     severity: 'warning', category: 'code-smell',
     message: 'Public mutable field breaks encapsulation.',
     suggestion: 'Make private and add getter/setter methods.' },
 
-  // instanceof handles null — the null check before it is redundant
   { id: 'java:null-before-instanceof',
     pattern: /\w+\s*!=\s*null\s*&&\s*\w+\s+instanceof/g,
     severity: 'hint', category: 'code-smell',
     message: 'Null check before instanceof is redundant — instanceof returns false for null.' },
 
-  // Track in the issue tracker not buried in comments
   { id: 'java:todo',
     pattern: /\/\/\s*(TODO|FIXME|HACK|XXX)/gi,
     severity: 'info', category: 'code-smell',
     message: 'TODO/FIXME comment — move to your issue tracker.' },
 ];
+
+// Skip lines that are rule/pattern definitions rather than real code, so a
+// linter or security file does not flag its own detection patterns.
+function isRuleDefinitionLine(line: string): boolean {
+  const t = line.trim();
+  if (/^pattern:\s*\//.test(t)) return true;
+  if (/^\{?\s*id:\s*['"][a-z]+:/.test(t)) return true;
+  if (/^(message|suggestion):\s*['"]/.test(t)) return true;
+  return false;
+}
 
 export function runJavaRules(lines: string[]): Issue[] {
   const issues: Issue[] = [];
@@ -202,6 +188,9 @@ export function runJavaRules(lines: string[]): Issue[] {
 
     // Skip pure comment lines to avoid false positives
     if (line.trim().startsWith('//') && !/TODO|FIXME|HACK|XXX/i.test(line)) continue;
+
+    // Skip rule-definition lines (see isRuleDefinitionLine).
+    if (isRuleDefinitionLine(line)) continue;
 
     for (const rule of RULES) {
       rule.pattern.lastIndex = 0;
@@ -221,6 +210,7 @@ export function runJavaRules(lines: string[]): Issue[] {
           suggestion: rule.suggestion,
           source:     'static',
         });
+        if (match.index === rule.pattern.lastIndex) rule.pattern.lastIndex++;
       }
     }
   }
