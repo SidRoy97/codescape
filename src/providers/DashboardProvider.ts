@@ -201,7 +201,9 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
 
   .brand { display: flex; align-items: center; gap: 7px; margin-bottom: 14px; }
   .brand-logo { width: 18px; height: 18px; border-radius: 5px;
-    background: linear-gradient(135deg, var(--purple), var(--info)); flex-shrink: 0; }
+    background: linear-gradient(135deg, var(--purple), var(--info)); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800; color: #fff; letter-spacing: 0.3px; }
   .brand-name { font-size: 14px; font-weight: 700; letter-spacing: 0.2px; }
 
   .group { margin-bottom: 13px; }
@@ -276,8 +278,8 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
 <body>
 
 <div class="brand">
-  <div class="brand-logo"></div>
-  <div class="brand-name">codereach</div>
+  <div class="brand-logo">CR</div>
+  <div class="brand-name">CodeReach</div>
 </div>
 
 <div class="group">
