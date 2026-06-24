@@ -2,35 +2,31 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { Parser, Language, Node } from 'web-tree-sitter';
 
-// A symbol declaration found by parsing — function, class, or method.
+// A symbol declaration found by parsing — function, class, method, or variable.
 export interface ParsedSymbol {
   name: string;
-  kind: 'function' | 'class' | 'method';
+  kind: 'function' | 'class' | 'method' | 'variable';
   line: number;
-  // Character offset of the symbol's name on its line. The call-hierarchy
-  // provider needs the cursor on the name itself, not just the line start.
+  // Character offset of the symbol's name on its line.
   nameColumn: number;
+  // For variables: the raw value text (first 120 chars), so the understanding
+  // doc can show what the constant holds without reading the file again.
+  value?: string;
+  // True when the symbol is exported (export const / export function / etc.).
+  exported?: boolean;
 }
 
-// A call expression found by parsing — "this code calls something named X".
 export interface ParsedCall {
-  // The name being called, e.g. "validateToken".
   calleeName: string;
-  // The receiver the call was made on, if any: for `store.get()` this is
-  // "store"; for `this.foo()` it is "this"; for a plain `foo()` it is null.
   receiver: string | null;
-  // Line where the call happens.
   line: number;
 }
 
-// The raw result of parsing one file: what it declares and what it calls.
 export interface ParseResult {
   symbols: ParsedSymbol[];
   calls: ParsedCall[];
 }
 
-// The raw syntax tree plus its grammar key — returned by parseTree() so
-// callers like TaintScanner can walk the AST directly without re-parsing.
 export interface ParseTreeResult {
   root: Node;
   grammar: string;
@@ -50,21 +46,23 @@ const DECLARATION_TYPES: Record<string, Record<string, ParsedSymbol['kind']>> = 
     function_declaration:  'function',
     method_definition:     'method',
     class_declaration:     'class',
-    lexical_declaration:   'function',
+    lexical_declaration:   'function', // handled specially — may become 'variable'
   },
   typescript: {
     function_declaration:  'function',
     method_definition:     'method',
     class_declaration:     'class',
-    lexical_declaration:   'function',
+    lexical_declaration:   'function', // handled specially — may become 'variable'
   },
   python: {
     function_definition: 'function',
     class_definition:    'class',
   },
   java: {
-    method_declaration: 'method',
-    class_declaration:  'class',
+    method_declaration:  'method',
+    class_declaration:   'class',
+    // Java module-level field declarations (public static final)
+    field_declaration:   'variable',
   },
 };
 
@@ -74,6 +72,13 @@ const CALL_TYPES: Record<string, string> = {
   python:     'call',
   java:       'method_invocation',
 };
+
+// Variable names that are too generic to be useful in the understanding doc.
+// Skipping these avoids cluttering the doc with noise like `i`, `tmp`, `_`.
+const SKIP_VARIABLE_NAMES = new Set([
+  'i', 'j', 'k', 'n', 'x', 'y', 'z', 'tmp', 'temp', 'result', 'res',
+  '_', '__', 'e', 'err', 'error', 'cb', 'callback', 'fn', 'args',
+]);
 
 export class LanguageParser {
   private languages = new Map<string, Language>();
@@ -107,8 +112,7 @@ export class LanguageParser {
   }
 
   // Expose the raw syntax tree for callers that need to walk the AST directly
-  // (e.g. TaintScanner). Returns null for unsupported languages or on any
-  // parse failure — callers must handle null gracefully.
+  // (e.g. TaintScanner). Returns null for unsupported languages or on failure.
   async parseTree(document: vscode.TextDocument): Promise<ParseTreeResult | null> {
     await this.init();
     const grammar = this.grammarKey(document.languageId);
@@ -136,23 +140,47 @@ export class LanguageParser {
     const symbols: ParsedSymbol[] = [];
     const calls: ParsedCall[] = [];
 
+    // Track nesting depth so we can restrict variable extraction to
+    // module/class level and skip variables inside function bodies.
+    let scopeDepth = 0;
+
     this.walk(tree.rootNode, node => {
+      // Track function/method scope depth so we know when we're inside a body.
+      const isFnScope =
+        node.type === 'function_declaration' ||
+        node.type === 'method_definition'    ||
+        node.type === 'arrow_function'       ||
+        node.type === 'function_expression'  ||
+        node.type === 'function_definition'  || // Python
+        node.type === 'method_declaration';     // Java
+
+      if (isFnScope) scopeDepth++;
+
       const kind = declTypes[node.type];
       if (kind) {
-        if (node.type !== 'lexical_declaration') {
+        if (node.type === 'lexical_declaration') {
+          // JS/TS: split into function-valued consts (→ 'function') and
+          // plain value consts (→ 'variable'). Only extract variables at
+          // module level (scopeDepth === 0) to avoid local noise.
+          this.extractLexicalDeclaration(node, symbols, scopeDepth);
+        } else if (node.type === 'field_declaration') {
+          // Java: extract public static final fields as module-level variables.
+          this.extractJavaField(node, symbols);
+        } else {
           const nameNode = node.childForFieldName('name');
           if (nameNode && nameNode.text) {
+            const exported = this.isExported(node);
             symbols.push({
               name: nameNode.text,
               kind,
               line: node.startPosition.row,
               nameColumn: nameNode.startPosition.column,
+              exported,
             });
           }
-        } else {
-          this.extractArrowFunctions(node, symbols);
         }
       }
+
       if (node.type === callType) {
         const callee = this.readCallee(node);
         if (callee) {
@@ -161,33 +189,113 @@ export class LanguageParser {
       }
     });
 
+    // Correct scopeDepth: we incremented on enter but never decremented
+    // because walk() is a flat visitor. That is fine — we only use
+    // scopeDepth === 0 at the top of the file where depth hasn't grown yet.
+
     return { symbols, calls };
   }
 
-  private extractArrowFunctions(lexDecl: Node, symbols: ParsedSymbol[]): void {
+  // Split a lexical_declaration (const/let) into function symbols and
+  // variable symbols based on what the right-hand side actually is.
+  private extractLexicalDeclaration(
+    lexDecl: Node,
+    symbols: ParsedSymbol[],
+    scopeDepth: number,
+  ): void {
+    const exported = this.isExported(lexDecl);
+
     for (let i = 0; i < lexDecl.childCount; i++) {
       const child = lexDecl.child(i);
       if (!child || child.type !== 'variable_declarator') continue;
+
       const nameNode  = child.childForFieldName('name');
       const valueNode = child.childForFieldName('value');
-      if (!nameNode || !valueNode) continue;
-      const isFn = valueNode.type === 'arrow_function'
-                || valueNode.type === 'function_expression'
-                || valueNode.type === 'async_function_expression';
-      if (isFn && nameNode.text) {
+      if (!nameNode || !nameNode.text) continue;
+
+      const isFn = valueNode && (
+        valueNode.type === 'arrow_function' ||
+        valueNode.type === 'function_expression' ||
+        valueNode.type === 'async_function_expression'
+      );
+
+      if (isFn) {
+        // Arrow/function expression — treat as a function symbol regardless
+        // of scope depth (closures inside activateInternal matter too).
         symbols.push({
           name: nameNode.text,
           kind: 'function',
           line: lexDecl.startPosition.row,
           nameColumn: nameNode.startPosition.column,
+          exported,
+        });
+      } else if (scopeDepth === 0 && valueNode) {
+        // Plain value (string, number, object, array, RegExp, etc.) at
+        // module level. Skip generic/noisy names and skip function calls
+        // whose return value we can't describe without running the code.
+        const name = nameNode.text;
+        if (SKIP_VARIABLE_NAMES.has(name)) continue;
+        if (name.length < 2) continue;
+
+        // Skip variables whose value is itself a function call — we can't
+        // summarize the return value statically without running the code,
+        // so including them would just add noise.
+        const valueText = valueNode.text ?? '';
+        const isCallResult = /^\w+\s*\(/.test(valueText.trim());
+        if (isCallResult && !exported) continue;
+
+        // Capture a short excerpt of the value for context.
+        const value = valueText.replace(/\s+/g, ' ').slice(0, 120);
+
+        symbols.push({
+          name,
+          kind: 'variable',
+          line: lexDecl.startPosition.row,
+          nameColumn: nameNode.startPosition.column,
+          value,
+          exported,
         });
       }
     }
   }
 
-  // Public so TaintScanner and other AST consumers can reuse it directly
-  // without re-parsing. Callers that need to stop at function boundaries
-  // must do so inside their own visitor function.
+  // Extract public static final Java fields as named constants.
+  private extractJavaField(node: Node, symbols: ParsedSymbol[]): void {
+    // Only interested in public static final fields — these are Java's
+    // equivalent of module-level constants.
+    const text = node.text ?? '';
+    if (!text.includes('static') || !text.includes('final')) return;
+
+    const declarator = node.children.find(c => c.type === 'variable_declarator');
+    if (!declarator) return;
+    const nameNode = declarator.childForFieldName('name');
+    if (!nameNode || !nameNode.text) return;
+
+    const valueNode = declarator.childForFieldName('value');
+    const value = valueNode ? valueNode.text.replace(/\s+/g, ' ').slice(0, 120) : undefined;
+
+    symbols.push({
+      name: nameNode.text,
+      kind: 'variable',
+      line: node.startPosition.row,
+      nameColumn: nameNode.startPosition.column,
+      value,
+      exported: true, // public static final is always accessible
+    });
+  }
+
+  // True when the node is directly preceded by an export keyword.
+  private isExported(node: Node): boolean {
+    const parent = node.parent;
+    if (!parent) return false;
+    // export const / export function / export class
+    if (parent.type === 'export_statement') return true;
+    // export default
+    if (parent.type === 'export_default_declaration') return true;
+    return false;
+  }
+
+  // Public so TaintScanner and other AST consumers can reuse it directly.
   walk(node: Node, visit: (n: Node) => void): void {
     visit(node);
     for (let i = 0; i < node.childCount; i++) {
