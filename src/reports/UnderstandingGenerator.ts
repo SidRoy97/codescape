@@ -256,6 +256,13 @@ export class UnderstandingGenerator {
     }
   }
 
+  /**
+   * Derives a summary of the given file based on its content and code nodes.
+   * @param file - The path to the file being summarized
+   * @param nodes - Array of CodeNode objects representing symbols in the file
+   * @param sourceLines - Array of strings representing the lines of code in the file
+   * @returns A string summarizing the classes, functions, and variables defined in the file, or null if no summary could be generated
+   */
   private async deriveFileSummary(
     file: string,
     nodes: CodeNode[],
@@ -274,6 +281,12 @@ export class UnderstandingGenerator {
     return null;
   }
 
+  /**
+   * Generates a summary of structural elements in a file.
+   * @param file - The path to the file being summarized
+   * @param nodes - Array of CodeNode objects representing symbols in the file
+   * @returns A string summarizing the classes, functions, and variables defined in the file
+   */
   private structuralFileSummary(file: string, nodes: CodeNode[]): string {
     const classes   = nodes.filter(n => n.kind === 'class').map(n => n.name);
     const functions = nodes.filter(n => n.kind === 'function').map(n => n.name);
@@ -292,6 +305,15 @@ export class UnderstandingGenerator {
     return `${basename} module with ${nodes.length} symbol(s).`;
   }
 
+  /**
+   * Retries fallbacks for missing symbols in files.
+   * @param root - The root directory of the project
+   * @param byFile - Map of files to their corresponding code nodes
+   * @param doc - UnderstandingDoc object containing file information
+   * @param token - CancellationToken for cancellation support
+   * @param progress - Progress reporter for tracking progress
+   * @returns Promise resolving when retries are complete
+   */
   private async retryFallbacks(
     root: string,
     byFile: Map<string, CodeNode[]>,
@@ -339,6 +361,17 @@ export class UnderstandingGenerator {
     }
   }
 
+  /**
+   * Builds a file entry from the given nodes, graph, analyzer, and summaries.
+   * @param _file - The path to the file being analyzed
+   * @param nodes - An array of code nodes representing the file's contents
+   * @param graph - A code graph containing relationships between nodes
+   * @param analyzer - An impact analyzer for determining method relationships
+   * @param fileSummary - A summary of the file's content
+   * @param aiSummaries - A map of AI-generated summaries for symbols
+   * @param precise - Precise relationship data, if available
+   * @returns A Promise resolving to a FileEntry object representing the file
+   */
   private async buildFileEntry(
     _file: string,
     nodes: CodeNode[],
@@ -403,6 +436,15 @@ export class UnderstandingGenerator {
     return { summary: fileSummary, symbols };
   }
 
+  /**
+   * Converts a code node to a symbol entry.
+   * @param node - The code node to convert.
+   * @param graph - The code graph containing the node.
+   * @param analyzer - The impact analyzer for relationship analysis.
+   * @param ai - AI summary map for additional information.
+   * @param precise - Precise relationships if available.
+   * @returns A symbol entry representing the node.
+   */
   private async toSymbolEntry(
     node: CodeNode,
     graph: CodeGraph,
@@ -421,6 +463,14 @@ export class UnderstandingGenerator {
     };
   }
 
+  /**
+   * Analyzes relationships for a given node in the code graph.
+   * @param node - The node to analyze.
+   * @param graph - The code graph containing nodes and edges.
+   * @param analyzer - The impact analyzer for relationship analysis.
+   * @param precise - Precise relationships if available.
+   * @returns An object with arrays of caller and callee relations.
+   */
   private async relationships(
     node: CodeNode,
     graph: CodeGraph,
@@ -482,11 +532,27 @@ export class UnderstandingGenerator {
     return `${exported} "${node.name}" defined at line ${node.line + 1}.`;
   }
 
+  /**
+   * Determines if the summary indicates a fallback message.
+   * @param summary - The summary string to check.
+   * @returns true if the summary is a fallback, false otherwise.
+   */
+  
+  /**
+   * Builds a global context string from the provided document.
+   * @param doc - The understanding document containing files to summarize.
+   * @returns A summary of the project's analyzed files or a default message if summarization fails.
+   */
   private isFallback(summary: string): boolean {
     return / defined in .+ at line \d+\.$/.test(summary)
         || / defined at line \d+\.$/.test(summary);
   }
 
+  /**
+   * Builds a global context string from the provided document.
+   * @param doc - The understanding document containing files to summarize.
+   * @returns A summary of the project's analyzed files or a default message if summarization fails.
+   */
   private async buildGlobalContext(doc: UnderstandingDoc): Promise<string> {
     const lines = Object.entries(doc.files)
       .map(([file, entry]) => `${file}: ${entry.summary}`)
