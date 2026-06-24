@@ -8,6 +8,7 @@ import { StaticScanner }        from './scanners/StaticScanner';
 import { ComplexityScanner }    from './scanners/ComplexityScanner';
 import { DuplicateScanner }     from './scanners/DuplicateScanner';
 import { AiScanner }            from './scanners/AiScanner';
+import { TaintScanner }         from './scanners/TaintScanner';
 import { AnalysisOrchestrator } from './AnalysisOrchestrator';
 
 // UI publishers
@@ -54,8 +55,8 @@ const SUPPORTED_LANGUAGES = [
 const CODEREACH_OUTPUT_FILES = new Set([
   'codereach.json',
   'codereach-understanding.json',
-  'codereach-problems.md',
-  'codereach-problems.json',
+  'codereach-issues.md',
+  'codereach-issues.json',
 ]);
 
 const isCoderReachOutput = (fsPath: string): boolean => {
@@ -120,13 +121,16 @@ function activateInternal(context: vscode.ExtensionContext): void {
   // Problems report writer (reads ResultStore, names functions via the graph)
   const problemsReporter = new ProblemsReporter(store, () => graphBuilder.getGraph());
 
-  // One reusable list panel for Build Graph / Find Unused / Blast Radius.
+  // One reusable list panel for Build Graph / Find Unused / Blast Radius / Taint.
   const listPanel = new ListPanel(context.extensionUri);
 
   // Structured project-understanding document generator.
   const understanding = new UnderstandingGenerator(
     () => graphBuilder.getGraph(), summarizer, ai,
   );
+
+  // On-demand intra-file taint scanner (Phase 1 — source-to-sink within one file).
+  const taintScanner = new TaintScanner(parser);
 
   // Blast-radius status bar item (now computed from the graph).
   const blastBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
@@ -444,6 +448,56 @@ function activateInternal(context: vscode.ExtensionContext): void {
       } catch (e) {
         vscode.window.showErrorMessage(`CodeReach: Understanding doc failed — ${e}`);
       }
+    }),
+  );
+
+  // On-demand taint scan for the active file — finds source-to-sink data flows
+  // (e.g. req.body reaching innerHTML without sanitization). Runs the
+  // intra-file Phase 1 engine and shows results in the ListPanel.
+  // Kept separate from the save-triggered pipeline because AST taint walking
+  // is heavier than regex rules and should be an explicit developer action.
+  context.subscriptions.push(
+    vscode.commands.registerCommand('codereach.taintScan', async () => {
+      const editor = vscode.window.activeTextEditor
+        ?? vscode.window.visibleTextEditors.find(e => e.document.uri.scheme === 'file');
+      if (!editor) {
+        vscode.window.showWarningMessage('CodeReach: Open a file first.');
+        return;
+      }
+
+      await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: 'CodeReach: Running taint scan…' },
+        async () => {
+          let issues: Awaited<ReturnType<typeof taintScanner.scan>>;
+          try {
+            issues = await taintScanner.scan(editor.document);
+          } catch (e) {
+            vscode.window.showErrorMessage(`CodeReach: Taint scan failed — ${e}`);
+            return;
+          }
+
+          const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+          const relFile = root
+            ? path.relative(root, editor.document.uri.fsPath)
+            : editor.document.uri.fsPath;
+
+          const rows: ListRow[] = issues.map(issue => ({
+            label:  issue.message,
+            detail: `${relFile}:${issue.line + 1}  —  ${issue.suggestion ?? ''}`,
+            file:   relFile,
+            line:   issue.line,
+            tone:   'danger' as const,
+          }));
+
+          listPanel.show({
+            title: `Taint Scan — ${path.basename(editor.document.uri.fsPath)}`,
+            intro: rows.length === 0
+              ? 'No source-to-sink flows found in this file.'
+              : `${rows.length} taint flow(s) found. Click a row to jump to the sink line.`,
+            rows,
+          });
+        },
+      );
     }),
   );
 

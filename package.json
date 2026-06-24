@@ -2,7 +2,7 @@
   "name": "codereach",
   "displayName": "CodeReach — Code Quality & Impact Graph",
   "description": "Security, code quality, SOLID analysis, AI-powered fixes, and an interactive code impact graph. Works with Ollama, Groq, HuggingFace, and more.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "SidRoy300497",
   "license": "MIT",
   "repository": {
@@ -86,6 +86,10 @@
       {
         "command": "codereach.safetyCheck",
         "title": "CodeReach: Safety Check (What Breaks if I Change This)"
+      },
+      {
+        "command": "codereach.taintScan",
+        "title": "CodeReach: Taint Scan — Find Source-to-Sink Flows"
       }
     ],
     "configuration": {
@@ -212,6 +216,10 @@
         {
           "command": "codereach.showBlastRadius",
           "group": "codereach@5"
+        },
+        {
+          "command": "codereach.taintScan",
+          "group": "codereach@6"
         }
       ]
     }
