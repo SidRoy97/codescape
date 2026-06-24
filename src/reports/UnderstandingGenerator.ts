@@ -405,7 +405,7 @@ export class UnderstandingGenerator {
   // Assemble one file's entry: top-level functions and classes, with methods
   // nested under their class by file + line proximity.
   private async buildFileEntry(
-    file: string,
+    _file: string,
     nodes: CodeNode[],
     graph: CodeGraph,
     analyzer: ImpactAnalyzer,
