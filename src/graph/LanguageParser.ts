@@ -266,7 +266,7 @@ export class LanguageParser {
     const text = node.text ?? '';
     if (!text.includes('static') || !text.includes('final')) return;
 
-    const declarator = node.children.find(c => c.type === 'variable_declarator');
+    const declarator = node.children.find(c => c?.type === 'variable_declarator');
     if (!declarator) return;
     const nameNode = declarator.childForFieldName('name');
     if (!nameNode || !nameNode.text) return;
