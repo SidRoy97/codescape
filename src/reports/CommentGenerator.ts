@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
+import { execSync } from 'child_process';
 import { LanguageParser } from '../graph/LanguageParser';
 import { AiScanner } from '../scanners/AiScanner';
 
-// Comment style per language — what to insert above a function/method.
 type CommentStyle = 'jsdoc' | 'python' | 'javadoc';
 
 const STYLE_FOR_LANG: Record<string, CommentStyle> = {
@@ -14,8 +14,6 @@ const STYLE_FOR_LANG: Record<string, CommentStyle> = {
   java:            'javadoc',
 };
 
-// Prompts use concrete examples so smaller models can follow the output
-// format even when they struggle with "return ONLY" instructions.
 const SYSTEM_PROMPTS: Record<CommentStyle, string> = {
   jsdoc:
 `Write a JSDoc comment for the given JavaScript/TypeScript function.
@@ -60,15 +58,13 @@ Example output:
  */`,
 };
 
-// Single job: find uncommented functions/methods in a file and insert
-// AI-generated comments above them. Non-destructive — never touches a
-// function that already has a comment directly above it.
 export class CommentGenerator {
   constructor(
     private readonly parser: LanguageParser,
     private readonly ai: AiScanner,
   ) {}
 
+  // Public entry point — probe AI first, handle setup if needed, then generate.
   async generateForFile(document: vscode.TextDocument): Promise<void> {
     const style = STYLE_FOR_LANG[document.languageId];
     if (!style) {
@@ -78,6 +74,82 @@ export class CommentGenerator {
       return;
     }
 
+    const aiReady = await this.probeAi();
+    if (!aiReady) {
+      // Detect what state Ollama is in so we can show a precise message.
+      const ollamaState = this.detectOllamaState();
+      const message =
+        ollamaState === 'not-installed'
+          ? 'CodeReach: No AI response. Ollama does not appear to be installed. ' +
+            'Install it from ollama.com, pull a model ("ollama pull llama3.2"), then start the server ("ollama serve"). ' +
+            'You can also switch to a cloud provider in Settings → codereach.aiProvider.'
+          : ollamaState === 'no-models'
+          ? 'CodeReach: No AI response. Ollama is installed but no models are pulled yet. ' +
+            'Run "ollama pull llama3.2" in a terminal first, then start the server. ' +
+            'You can also switch to a cloud provider in Settings → codereach.aiProvider.'
+          : 'CodeReach: No AI response. Ollama is installed and has models — the server just needs to be started. ' +
+            'Click "Start Ollama" and generation will begin automatically once it is ready. ' +
+            'You can also switch to a cloud provider in Settings → codereach.aiProvider.';
+
+      const choice = await vscode.window.showWarningMessage(
+        message,
+        'Start Ollama',
+        'Open Settings',
+        'Get Ollama',
+      );
+
+      if (choice === 'Start Ollama') {
+        // Open a terminal and start Ollama, then wait for it to be ready
+        // before proceeding — so the user doesn't have to click again.
+        const terminal = vscode.window.createTerminal('CodeReach: Ollama');
+        terminal.show();
+        terminal.sendText('ollama serve');
+
+        // Poll until the server responds, up to 30 seconds.
+        const ready = await this.waitForOllama(30);
+        if (!ready) {
+          vscode.window.showWarningMessage(
+            'CodeReach: Ollama is taking longer than expected to start. ' +
+            'Wait a few seconds and try Auto-Comment again.',
+          );
+          return;
+        }
+        // Server is up — fall through and generate immediately.
+        vscode.window.showInformationMessage('CodeReach: Ollama is ready.');
+
+      } else if (choice === 'Open Settings') {
+        vscode.commands.executeCommand('workbench.action.openSettings', 'codereach.aiProvider');
+        return;
+      } else if (choice === 'Get Ollama') {
+        vscode.env.openExternal(vscode.Uri.parse('https://ollama.com'));
+        return;
+      } else {
+        // Dismissed
+        return;
+      }
+    }
+
+    await this.runGeneration(document, style);
+  }
+
+  // Poll the AI provider every 2 seconds until it responds or we time out.
+  private async waitForOllama(timeoutSeconds: number): Promise<boolean> {
+    return vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: 'CodeReach: Waiting for Ollama to start…' },
+      async () => {
+        const attempts = Math.floor(timeoutSeconds / 2);
+        for (let i = 0; i < attempts; i++) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const ready = await this.probeAi();
+          if (ready) return true;
+        }
+        return false;
+      },
+    );
+  }
+
+  // Core generation logic — separated so it can be called after Ollama starts.
+  private async runGeneration(document: vscode.TextDocument, style: CommentStyle): Promise<void> {
     const parsed = await this.parser.parse(document);
     const symbols = parsed.symbols.filter(
       s => s.kind === 'function' || s.kind === 'method',
@@ -88,7 +160,6 @@ export class CommentGenerator {
       return;
     }
 
-    // Filter to only symbols that do NOT already have a comment above them.
     const uncommented = symbols.filter(
       s => !this.hasCommentAbove(document, s.line, style),
     );
@@ -97,30 +168,6 @@ export class CommentGenerator {
       vscode.window.showInformationMessage(
         'CodeReach: All functions in this file already have comments.',
       );
-      return;
-    }
-
-    // Probe the AI before iterating — give the user clear setup guidance
-    // if the provider is not reachable, instead of silently skipping everything.
-    const aiReady = await this.probeAi();
-    if (!aiReady) {
-      const choice = await vscode.window.showWarningMessage(
-        'CodeReach: No AI response — comments cannot be generated. ' +
-        'For Ollama: start the server by running "ollama serve" in a terminal. ' +
-        'You can also switch to a cloud provider (Groq, HuggingFace) in Settings → codereach.aiProvider.',
-        'Start Ollama',
-        'Open Settings',
-        'Get Ollama',
-      );
-      if (choice === 'Start Ollama') {
-        const terminal = vscode.window.createTerminal('CodeReach: Ollama');
-        terminal.show();
-        terminal.sendText('ollama serve');
-      } else if (choice === 'Open Settings') {
-        vscode.commands.executeCommand('workbench.action.openSettings', 'codereach.aiProvider');
-      } else if (choice === 'Get Ollama') {
-        vscode.env.openExternal(vscode.Uri.parse('https://ollama.com'));
-      }
       return;
     }
 
@@ -134,8 +181,7 @@ export class CommentGenerator {
         cancellable: true,
       },
       async (progress, token) => {
-        // Process bottom-to-top so insertions above earlier functions don't
-        // shift the line numbers of later ones.
+        // Bottom-to-top so insertions don't shift line numbers of earlier functions.
         const sorted = [...uncommented].sort((a, b) => b.line - a.line);
 
         for (let i = 0; i < sorted.length; i++) {
@@ -147,7 +193,6 @@ export class CommentGenerator {
             increment: (1 / sorted.length) * 100,
           });
 
-          // Re-read after each edit so the live document reflects prior insertions.
           const live = vscode.workspace.textDocuments.find(
             d => d.uri.toString() === document.uri.toString(),
           ) ?? document;
@@ -158,8 +203,8 @@ export class CommentGenerator {
           const comment = await this.generateComment(sym.name, slice, style, live.languageId);
           if (!comment) { skipped++; continue; }
 
-          const indent   = this.indentOf(live, sym.line);
-          const indented = this.indentComment(comment, indent);
+          const indent    = this.indentOf(live, sym.line);
+          const indented  = this.indentComment(comment, indent);
           const insertPos = new vscode.Position(sym.line, 0);
 
           const edit = new vscode.WorkspaceEdit();
@@ -171,13 +216,36 @@ export class CommentGenerator {
     );
 
     const msg = skipped > 0
-      ? `CodeReach: Added ${added} comment(s). ${skipped} skipped (AI unavailable or empty response).`
+      ? `CodeReach: Added ${added} comment(s). ${skipped} skipped (AI returned empty response).`
       : `CodeReach: Added ${added} comment(s).`;
     vscode.window.showInformationMessage(msg);
   }
 
-  // True when the line immediately above `line` (ignoring blank lines)
-  // already contains a comment for the given style.
+  // Detect the state of the local Ollama installation so we can show a
+  // precise message — rather than always saying the same thing regardless
+  // of whether Ollama is installed, has models, or just needs the server started.
+  private detectOllamaState(): 'not-installed' | 'no-models' | 'has-models' {
+    try {
+      // If 'ollama' is not on PATH this will throw.
+      const result = execSync('ollama list 2>&1', { timeout: 3000 }).toString().trim();
+      // "ollama list" with no models prints just the header line "NAME  ID  SIZE  MODIFIED"
+      // With models it has additional lines.
+      const lines = result.split('\n').filter(l => l.trim());
+      return lines.length <= 1 ? 'no-models' : 'has-models';
+    } catch {
+      return 'not-installed';
+    }
+  }
+
+  private async probeAi(): Promise<boolean> {
+    try {
+      const reply = await this.ai.generateText('Reply with the single word: ok', 'ping');
+      return !!(reply && reply.trim());
+    } catch {
+      return false;
+    }
+  }
+
   private hasCommentAbove(
     document: vscode.TextDocument,
     line:     number,
@@ -185,8 +253,7 @@ export class CommentGenerator {
   ): boolean {
     for (let l = line - 1; l >= 0; l--) {
       const text = document.lineAt(l).text.trim();
-      if (text === '') continue; // skip blank lines between decorator/comment and function
-
+      if (text === '') continue;
       if (style === 'python') {
         return text.startsWith('"""') || text.startsWith("'''") || text.startsWith('#');
       } else {
@@ -196,7 +263,6 @@ export class CommentGenerator {
     return false;
   }
 
-  // Extract up to 60 lines starting at the function definition line.
   private functionSlice(document: vscode.TextDocument, line: number): string | null {
     const start = Math.max(0, line);
     const end   = Math.min(document.lineCount, start + 60);
@@ -207,18 +273,6 @@ export class CommentGenerator {
     return lines.join('\n') || null;
   }
 
-  // Quick sanity check — send a tiny request to confirm the AI provider
-  // is reachable before iterating over every function in the file.
-  private async probeAi(): Promise<boolean> {
-    try {
-      const reply = await this.ai.generateText('Reply with the single word: ok', 'ping');
-      return !!(reply && reply.trim());
-    } catch {
-      return false;
-    }
-  }
-
-  // Ask the AI for a comment for one function.
   private async generateComment(
     name:   string,
     code:   string,
@@ -245,17 +299,13 @@ export class CommentGenerator {
     }
   }
 
-  // Strip prose/markdown the model may have added, leaving just the comment block.
-  // Handles: markdown fences, "Here is the comment:" preambles, plain text
-  // that needs to be wrapped.
   private cleanComment(raw: string, style: CommentStyle): string {
     let s = raw.trim();
 
-    // Remove markdown fences (```js ... ```, ```python ... ```, etc.)
+    // Strip markdown fences.
     s = s.replace(/^```[\w]*\r?\n?/im, '').replace(/\r?\n?```\s*$/im, '').trim();
 
-    // Find the first line that looks like the start of a real comment and
-    // discard any preamble prose before it.
+    // Find the first line that looks like the start of a real comment.
     const lines = s.split('\n');
     let startIdx = 0;
     for (let i = 0; i < lines.length; i++) {
@@ -268,7 +318,7 @@ export class CommentGenerator {
     }
     s = lines.slice(startIdx).join('\n').trim();
 
-    // If the model still produced plain text without comment syntax, wrap it.
+    // Wrap plain text if the model forgot comment syntax.
     if (style === 'python') {
       if (!s.startsWith('"""') && !s.startsWith("'''")) {
         const plain = s.trim();
@@ -285,14 +335,12 @@ export class CommentGenerator {
     return s;
   }
 
-  // Get the leading whitespace of the function's line.
   private indentOf(document: vscode.TextDocument, line: number): string {
     const text  = document.lineAt(line).text;
     const match = text.match(/^(\s*)/);
     return match ? match[1] : '';
   }
 
-  // Prefix every line of the comment with the same indentation as the function.
   private indentComment(comment: string, indent: string): string {
     if (!indent) return comment;
     return comment.split('\n').map(line => indent + line).join('\n');
