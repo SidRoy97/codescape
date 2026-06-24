@@ -44,6 +44,7 @@ const StaticScanner_1 = require("./scanners/StaticScanner");
 const ComplexityScanner_1 = require("./scanners/ComplexityScanner");
 const DuplicateScanner_1 = require("./scanners/DuplicateScanner");
 const AiScanner_1 = require("./scanners/AiScanner");
+const TaintScanner_1 = require("./scanners/TaintScanner");
 const AnalysisOrchestrator_1 = require("./AnalysisOrchestrator");
 // UI publishers
 const DiagnosticsPublisher_1 = require("./publishers/DiagnosticsPublisher");
@@ -80,8 +81,8 @@ const SUPPORTED_LANGUAGES = [
 const CODEREACH_OUTPUT_FILES = new Set([
     'codereach.json',
     'codereach-understanding.json',
-    'codereach-problems.md',
-    'codereach-problems.json',
+    'codereach-issues.md',
+    'codereach-issues.json',
 ]);
 const isCoderReachOutput = (fsPath) => {
     const fname = path.basename(fsPath);
@@ -148,10 +149,12 @@ function activateInternal(context) {
     const summarizer = new FileSummarizer_1.FileSummarizer(ai, context);
     // Problems report writer (reads ResultStore, names functions via the graph)
     const problemsReporter = new ProblemsReporter_1.ProblemsReporter(store, () => graphBuilder.getGraph());
-    // One reusable list panel for Build Graph / Find Unused / Blast Radius.
+    // One reusable list panel for Build Graph / Find Unused / Blast Radius / Taint.
     const listPanel = new ListPanel_1.ListPanel(context.extensionUri);
     // Structured project-understanding document generator.
     const understanding = new UnderstandingGenerator_1.UnderstandingGenerator(() => graphBuilder.getGraph(), summarizer, ai);
+    // On-demand intra-file taint scanner (Phase 1 — source-to-sink within one file).
+    const taintScanner = new TaintScanner_1.TaintScanner(parser);
     // Blast-radius status bar item (now computed from the graph).
     const blastBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
     blastBar.command = 'codereach.showBlastRadius';
@@ -416,6 +419,47 @@ function activateInternal(context) {
         catch (e) {
             vscode.window.showErrorMessage(`CodeReach: Understanding doc failed — ${e}`);
         }
+    }));
+    // On-demand taint scan for the active file — finds source-to-sink data flows
+    // (e.g. req.body reaching innerHTML without sanitization). Runs the
+    // intra-file Phase 1 engine and shows results in the ListPanel.
+    // Kept separate from the save-triggered pipeline because AST taint walking
+    // is heavier than regex rules and should be an explicit developer action.
+    context.subscriptions.push(vscode.commands.registerCommand('codereach.taintScan', async () => {
+        const editor = vscode.window.activeTextEditor
+            ?? vscode.window.visibleTextEditors.find(e => e.document.uri.scheme === 'file');
+        if (!editor) {
+            vscode.window.showWarningMessage('CodeReach: Open a file first.');
+            return;
+        }
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'CodeReach: Running taint scan…' }, async () => {
+            let issues;
+            try {
+                issues = await taintScanner.scan(editor.document);
+            }
+            catch (e) {
+                vscode.window.showErrorMessage(`CodeReach: Taint scan failed — ${e}`);
+                return;
+            }
+            const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            const relFile = root
+                ? path.relative(root, editor.document.uri.fsPath)
+                : editor.document.uri.fsPath;
+            const rows = issues.map(issue => ({
+                label: issue.message,
+                detail: `${relFile}:${issue.line + 1}  —  ${issue.suggestion ?? ''}`,
+                file: relFile,
+                line: issue.line,
+                tone: 'danger',
+            }));
+            listPanel.show({
+                title: `Taint Scan — ${path.basename(editor.document.uri.fsPath)}`,
+                intro: rows.length === 0
+                    ? 'No source-to-sink flows found in this file.'
+                    : `${rows.length} taint flow(s) found. Click a row to jump to the sink line.`,
+                rows,
+            });
+        });
     }));
     // --- Event listeners ---
     context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(async (doc) => {

@@ -27,70 +27,23 @@
   "icon": "media/icon.png",
   "contributes": {
     "commands": [
-      {
-        "command": "codereach.analyzeFile",
-        "title": "CodeReach: Analyze Current File"
-      },
-      {
-        "command": "codereach.analyzeWorkspace",
-        "title": "CodeReach: Analyze Entire Workspace"
-      },
-      {
-        "command": "codereach.clearIssues",
-        "title": "CodeReach: Clear All Issues"
-      },
-      {
-        "command": "codereach.openDashboard",
-        "title": "CodeReach: Open Dashboard"
-      },
-      {
-        "command": "codereach.generateConfig",
-        "title": "CodeReach: Generate .codereach.json"
-      },
-      {
-        "command": "codereach.fixWithAi",
-        "title": "CodeReach: Fix with AI"
-      },
-      {
-        "command": "codereach.explainIssue",
-        "title": "CodeReach: Explain this Issue"
-      },
-      {
-        "command": "codereach.generateUnderstanding",
-        "title": "CodeReach: Generate Code Understanding Doc"
-      },
-      {
-        "command": "codereach.exportGraph",
-        "title": "CodeReach: Export Code Graph (codereach.json)"
-      },
-      {
-        "command": "codereach.findUnused",
-        "title": "CodeReach: Find Unused Symbols"
-      },
-      {
-        "command": "codereach.reportIssues",
-        "title": "CodeReach: Generate Problems Report"
-      },
-      {
-        "command": "codereach.showBlastRadius",
-        "title": "CodeReach: Show Blast Radius for Current File"
-      },
-      {
-        "command": "codereach.showImpactForCursor",
-        "title": "CodeReach: Show Impact for Symbol at Cursor"
-      },
-      {
-        "command": "codereach.traceFlow",
-        "title": "CodeReach: Trace Flow from Cursor"
-      },
-      {
-        "command": "codereach.safetyCheck",
-        "title": "CodeReach: Safety Check (What Breaks if I Change This)"
-      },
-      {
-        "command": "codereach.taintScan",
-        "title": "CodeReach: Taint Scan — Find Source-to-Sink Flows"
-      }
+      { "command": "codereach.analyzeFile",         "title": "CodeReach: Analyze Current File" },
+      { "command": "codereach.analyzeWorkspace",    "title": "CodeReach: Analyze Entire Workspace" },
+      { "command": "codereach.clearIssues",         "title": "CodeReach: Clear All Issues" },
+      { "command": "codereach.openDashboard",       "title": "CodeReach: Open Dashboard" },
+      { "command": "codereach.generateConfig",      "title": "CodeReach: Generate .codereach.json" },
+      { "command": "codereach.fixWithAi",           "title": "CodeReach: Fix with AI" },
+      { "command": "codereach.explainIssue",        "title": "CodeReach: Explain this Issue" },
+      { "command": "codereach.generateUnderstanding","title": "CodeReach: Generate Code Understanding Doc" },
+      { "command": "codereach.exportGraph",         "title": "CodeReach: Export Code Graph (codereach.json)" },
+      { "command": "codereach.findUnused",          "title": "CodeReach: Find Unused Symbols" },
+      { "command": "codereach.reportIssues",        "title": "CodeReach: Generate Problems Report" },
+      { "command": "codereach.showBlastRadius",     "title": "CodeReach: Show Blast Radius for Current File" },
+      { "command": "codereach.showImpactForCursor", "title": "CodeReach: Show Impact for Symbol at Cursor" },
+      { "command": "codereach.traceFlow",           "title": "CodeReach: Trace Flow from Cursor" },
+      { "command": "codereach.safetyCheck",         "title": "CodeReach: Safety Check (What Breaks if I Change This)" },
+      { "command": "codereach.taintScan",           "title": "CodeReach: Taint Scan — This File (Source-to-Sink)" },
+      { "command": "codereach.taintScanWorkspace",  "title": "CodeReach: Taint Scan — Workspace (Cross-File)" }
     ],
     "configuration": {
       "title": "CodeReach",
@@ -98,14 +51,7 @@
         "codereach.aiProvider": {
           "type": "string",
           "default": "ollama",
-          "enum": [
-            "ollama",
-            "groq",
-            "huggingface",
-            "openrouter",
-            "anthropic",
-            "openai-compatible"
-          ],
+          "enum": ["ollama","groq","huggingface","openrouter","anthropic","openai-compatible"],
           "enumDescriptions": [
             "Local models via Ollama — 100% free, no account, no key",
             "Groq cloud — free account, no credit card, very fast",
@@ -115,13 +61,12 @@
             "Any OpenAI-compatible server (LM Studio, vLLM, llama.cpp)"
           ],
           "markdownDescription": "Which AI backend to use.\n\n**Free options:** `ollama` (no account), `groq` (free account), `huggingface` (free account)",
-          "description": "AI provider. Default is Ollama, which runs locally and free. Install from ollama.com, run \"ollama pull llama3.2\", and it works with no API key. Switch to a cloud provider and set aiApiKey if preferred."
+          "description": "AI provider. Default is Ollama, which runs locally and free."
         },
         "codereach.aiModel": {
           "type": "string",
           "default": "llama3.2",
-          "markdownDescription": "Model name. Leave blank for the recommended default.\n\n**Ollama:** `qwen2.5-coder:7b` `llama3.2` `codellama`\n\n**Groq:** `qwen-2.5-coder-32b` `llama-3.3-70b-versatile`\n\n**HuggingFace:** `Qwen/Qwen2.5-Coder-7B-Instruct`",
-          "description": "Model name for the chosen provider. For Ollama, a model you have pulled (e.g. llama3.2, qwen2.5-coder). For cloud providers, their model id."
+          "markdownDescription": "Model name. Leave blank for the recommended default.\n\n**Ollama:** `qwen2.5-coder:7b` `llama3.2` `codellama`\n\n**Groq:** `qwen-2.5-coder-32b` `llama-3.3-70b-versatile`\n\n**HuggingFace:** `Qwen/Qwen2.5-Coder-7B-Instruct`"
         },
         "codereach.aiApiKey": {
           "type": "string",
@@ -131,7 +76,7 @@
         "codereach.aiBaseUrl": {
           "type": "string",
           "default": "http://localhost:11434",
-          "description": "Base URL for the chosen provider. Default is the local Ollama server. Cloud providers override this automatically when blank is not used."
+          "description": "Base URL for the chosen provider."
         },
         "codereach.analyzeOnSave": {
           "type": "boolean",
@@ -141,12 +86,12 @@
         "codereach.enableAiAnalysis": {
           "type": "boolean",
           "default": false,
-          "description": "Run AI deep analysis automatically when files are analyzed. Off by default because it runs a local/remote model and can be CPU/GPU heavy. AI features (Understanding Doc) still work on demand when this is off."
+          "description": "Run AI deep analysis automatically when files are analyzed."
         },
         "codereach.preciseRelationships": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Use the language server's call hierarchy for **ground-truth** caller/callee relationships in the Understanding Doc, instead of the fast built-in heuristic.\n\nMore accurate, but slower (it queries the language server per symbol) and depends on the relevant language extension being installed and indexed (TypeScript works out of the box; Python needs Pylance; Java needs the Java extension). When the language server can't resolve a symbol, CodeReach falls back to the heuristic for that symbol.\n\nOnly affects the Understanding Doc — live features always use the fast heuristic."
+          "markdownDescription": "Use the language server's call hierarchy for **ground-truth** caller/callee relationships in the Understanding Doc."
         },
         "codereach.enableStaticAnalysis": {
           "type": "boolean",
@@ -165,62 +110,29 @@
         },
         "codereach.languages": {
           "type": "array",
-          "default": [
-            "javascript",
-            "javascriptreact",
-            "typescript",
-            "typescriptreact",
-            "python",
-            "java"
-          ],
+          "default": ["javascript","javascriptreact","typescript","typescriptreact","python","java"],
           "description": "List of language IDs to analyze."
         }
       }
     },
     "viewsContainers": {
       "activitybar": [
-        {
-          "id": "codereach",
-          "title": "CodeReach",
-          "icon": "media/icon.svg"
-        }
+        { "id": "codereach", "title": "CodeReach", "icon": "media/icon.svg" }
       ]
     },
     "views": {
       "codereach": [
-        {
-          "type": "webview",
-          "id": "codereach.dashboard",
-          "name": "Dashboard"
-        }
+        { "type": "webview", "id": "codereach.dashboard", "name": "Dashboard" }
       ]
     },
     "menus": {
       "editor/context": [
-        {
-          "command": "codereach.analyzeFile",
-          "group": "codereach@1"
-        },
-        {
-          "command": "codereach.showImpactForCursor",
-          "group": "codereach@2"
-        },
-        {
-          "command": "codereach.safetyCheck",
-          "group": "codereach@3"
-        },
-        {
-          "command": "codereach.traceFlow",
-          "group": "codereach@4"
-        },
-        {
-          "command": "codereach.showBlastRadius",
-          "group": "codereach@5"
-        },
-        {
-          "command": "codereach.taintScan",
-          "group": "codereach@6"
-        }
+        { "command": "codereach.analyzeFile",         "group": "codereach@1" },
+        { "command": "codereach.showImpactForCursor", "group": "codereach@2" },
+        { "command": "codereach.safetyCheck",         "group": "codereach@3" },
+        { "command": "codereach.traceFlow",           "group": "codereach@4" },
+        { "command": "codereach.showBlastRadius",     "group": "codereach@5" },
+        { "command": "codereach.taintScan",           "group": "codereach@6" }
       ]
     }
   },
