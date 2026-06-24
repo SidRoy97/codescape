@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { CodeGraph, CodeNode } from '../graph/CodeGraphTypes';
@@ -156,26 +155,14 @@ export class UnderstandingGenerator {
     );
 
     if (!aiReady) {
-      const ollamaState = this.detectOllamaState();
-      const ollamaHint =
-        ollamaState === 'not-installed'
-          ? 'Ollama does not appear to be installed — get it at ollama.com.'
-          : ollamaState === 'no-models'
-          ? 'Ollama is installed but no models are pulled yet — run "ollama pull llama3.2" first.'
-          : 'Ollama is installed and has models — click "Start Ollama" to start the server.';
-
       const choice = await vscode.window.showWarningMessage(
-        'CodeReach: No AI response. The document will contain structure only, not AI summaries. ' +
-        ollamaHint + ' You can also switch to a cloud provider in Settings.',
-        'Build structure-only', 'Start Ollama', 'Cancel',
+        'CodeReach: No AI response. ' +
+        'For Ollama: run "ollama serve" in a terminal, then click 📖 Understanding Doc again. ' +
+        'If you have not installed Ollama yet: get it from ollama.com and run "ollama pull llama3.2" first. ' +
+        'Alternatively, choose "Structure only" to generate the document without AI summaries.',
+        'Structure only', 'Cancel',
       );
-      if (choice === 'Start Ollama') {
-        const terminal = vscode.window.createTerminal('CodeReach: Ollama');
-        terminal.show();
-        terminal.sendText('ollama serve');
-        return;
-      }
-      if (choice !== 'Build structure-only') return;
+      if (choice !== 'Structure only') return;
 
       for (const [file, nodes] of byFile) {
         const fileSummary = this.summarizer.getSummaries().get(file)
@@ -207,29 +194,7 @@ export class UnderstandingGenerator {
     }
   }
 
-  private detectOllamaState(): 'not-installed' | 'no-models' | 'has-models' {
-    // VS Code's Node process does not inherit the shell PATH on macOS/Linux,
-    // so plain 'ollama' may not resolve even when it is installed.
-    // Try common install locations before giving up.
-    const candidates = [
-      'ollama',
-      '/usr/local/bin/ollama',
-      '/opt/homebrew/bin/ollama',
-      '/usr/bin/ollama',
-    ];
-    for (const bin of candidates) {
-      try {
-        const result = execSync(`${bin} list 2>&1`, { timeout: 3000 }).toString().trim();
-        // "ollama list" with no models prints just the header line.
-        // With models it has additional lines.
-        const lines = result.split('\n').filter((l: string) => l.trim());
-        return lines.length <= 1 ? 'no-models' : 'has-models';
-      } catch {
-        // Try next candidate.
-      }
-    }
-    return 'not-installed';
-  }
+
 
   private groupByFile(nodes: CodeNode[]): Map<string, CodeNode[]> {
     const map = new Map<string, CodeNode[]>();

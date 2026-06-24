@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { execSync } from 'child_process';
 import { LanguageParser } from '../graph/LanguageParser';
 import { AiScanner } from '../scanners/AiScanner';
 
@@ -76,76 +75,17 @@ export class CommentGenerator {
 
     const aiReady = await this.probeAi();
     if (!aiReady) {
-      // Detect what state Ollama is in so we can show a precise message.
-      const ollamaState = this.detectOllamaState();
-      const message =
-        ollamaState === 'not-installed'
-          ? 'CodeReach: No AI response. Ollama does not appear to be installed. ' +
-            'Install it from ollama.com, pull a model ("ollama pull llama3.2"), then start the server ("ollama serve"). ' +
-            'You can also switch to a cloud provider in Settings → codereach.aiProvider.'
-          : ollamaState === 'no-models'
-          ? 'CodeReach: No AI response. Ollama is installed but no models are pulled yet. ' +
-            'Run "ollama pull llama3.2" in a terminal first, then start the server. ' +
-            'You can also switch to a cloud provider in Settings → codereach.aiProvider.'
-          : 'CodeReach: No AI response. Ollama is installed and has models — the server just needs to be started. ' +
-            'Click "Start Ollama" and generation will begin automatically once it is ready. ' +
-            'You can also switch to a cloud provider in Settings → codereach.aiProvider.';
-
-      const choice = await vscode.window.showWarningMessage(
-        message,
-        'Start Ollama',
-        'Open Settings',
-        'Get Ollama',
+      await vscode.window.showWarningMessage(
+        'CodeReach: No AI response — comments cannot be generated. ' +
+        'For Ollama: run "ollama serve" in a terminal, then click ✍️ Auto-Comment again. ' +
+        'If you have not installed Ollama yet: get it from ollama.com and run "ollama pull llama3.2" first. ' +
+        'You can also switch to a cloud provider in Settings → codereach.aiProvider.',
+        'OK',
       );
-
-      if (choice === 'Start Ollama') {
-        // Open a terminal and start Ollama, then wait for it to be ready
-        // before proceeding — so the user doesn't have to click again.
-        const terminal = vscode.window.createTerminal('CodeReach: Ollama');
-        terminal.show();
-        terminal.sendText('ollama serve');
-
-        // Poll until the server responds, up to 30 seconds.
-        const ready = await this.waitForOllama(30);
-        if (!ready) {
-          vscode.window.showWarningMessage(
-            'CodeReach: Ollama is taking longer than expected to start. ' +
-            'Wait a few seconds and try Auto-Comment again.',
-          );
-          return;
-        }
-        // Server is up — fall through and generate immediately.
-        vscode.window.showInformationMessage('CodeReach: Ollama is ready.');
-
-      } else if (choice === 'Open Settings') {
-        vscode.commands.executeCommand('workbench.action.openSettings', 'codereach.aiProvider');
-        return;
-      } else if (choice === 'Get Ollama') {
-        vscode.env.openExternal(vscode.Uri.parse('https://ollama.com'));
-        return;
-      } else {
-        // Dismissed
-        return;
-      }
+      return;
     }
 
     await this.runGeneration(document, style);
-  }
-
-  // Poll the AI provider every 2 seconds until it responds or we time out.
-  private async waitForOllama(timeoutSeconds: number): Promise<boolean> {
-    return vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Notification, title: 'CodeReach: Waiting for Ollama to start…' },
-      async () => {
-        const attempts = Math.floor(timeoutSeconds / 2);
-        for (let i = 0; i < attempts; i++) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          const ready = await this.probeAi();
-          if (ready) return true;
-        }
-        return false;
-      },
-    );
   }
 
   // Core generation logic — separated so it can be called after Ollama starts.
@@ -224,29 +164,7 @@ export class CommentGenerator {
   // Detect the state of the local Ollama installation so we can show a
   // precise message — rather than always saying the same thing regardless
   // of whether Ollama is installed, has models, or just needs the server started.
-  private detectOllamaState(): 'not-installed' | 'no-models' | 'has-models' {
-    // VS Code's Node process does not inherit the shell PATH on macOS/Linux,
-    // so plain 'ollama' may not resolve even when it is installed.
-    // Try common install locations before giving up.
-    const candidates = [
-      'ollama',
-      '/usr/local/bin/ollama',
-      '/opt/homebrew/bin/ollama',
-      '/usr/bin/ollama',
-    ];
-    for (const bin of candidates) {
-      try {
-        const result = execSync(`${bin} list 2>&1`, { timeout: 3000 }).toString().trim();
-        // "ollama list" with no models prints just the header line.
-        // With models it has additional lines.
-        const lines = result.split('\n').filter((l: string) => l.trim());
-        return lines.length <= 1 ? 'no-models' : 'has-models';
-      } catch {
-        // Try next candidate.
-      }
-    }
-    return 'not-installed';
-  }
+
 
   private async probeAi(): Promise<boolean> {
     try {
