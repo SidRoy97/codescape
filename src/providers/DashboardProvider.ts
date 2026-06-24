@@ -291,7 +291,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
     <button class="btn btn-taint" data-cmd="codereach.taintScanWorkspace"><span class="ic">🕸</span>Taint: Workspace</button>
   </div>
   <div class="note">
-    🔬 <b>Taint Scan</b> traces untrusted input (req.body, getParameter, e.target.value) to dangerous sinks (innerHTML, eval, db.query, exec) without a sanitizer in between. <b>This File</b> = fast intra-file. <b>Workspace</b> = cross-file via the code graph (Phase 2).
+    🔬 <b>Taint Scan</b> follows untrusted user input — from form fields, HTTP parameters, and CLI args — through your code to dangerous operations like database queries, shell commands, and HTML output. It flags flows where that input reaches a sink without being sanitized first. <b>This File</b> checks one file instantly. <b>Workspace</b> follows the data across files using your code graph, catching flows that span multiple functions and modules.
   </div>
 </div>
 
