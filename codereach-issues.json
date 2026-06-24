@@ -1,0 +1,270 @@
+{
+  "generated": "2026-06-23T05:18:37.000Z",
+  "totalIssues": 24,
+  "files": [
+    {
+      "file": "src/extension.ts",
+      "issueCount": 10,
+      "issues": [
+        {
+          "function": "activate",
+          "line": 51,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "activate",
+          "line": 54,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "activate",
+          "line": 57,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "activateInternal",
+          "line": 62,
+          "severity": "warning",
+          "category": "code-smell",
+          "message": "Function is 448 lines long — split it into smaller functions.",
+          "suggestion": "Aim for under 30 lines per function.",
+          "rule": "js:long-function"
+        },
+        {
+          "function": "activateInternal",
+          "line": 77,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "activateInternal",
+          "line": 78,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "activateInternal",
+          "line": 79,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "activateInternal",
+          "line": 147,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "activateInternal",
+          "line": 195,
+          "severity": "warning",
+          "category": "duplicate",
+          "message": "Duplicate block (6+ lines) also at line 221.",
+          "suggestion": "Extract shared logic into a reusable function.",
+          "rule": "duplicate:block"
+        },
+        {
+          "function": "deactivate",
+          "line": 513,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        }
+      ]
+    },
+    {
+      "file": "src/scanners/AiScanner.ts",
+      "issueCount": 5,
+      "issues": [
+        {
+          "function": "callOllama",
+          "line": 138,
+          "severity": "warning",
+          "category": "duplicate",
+          "message": "Duplicate block (6+ lines) also at line 248.",
+          "suggestion": "Extract shared logic into a reusable function.",
+          "rule": "duplicate:block"
+        },
+        {
+          "function": "callOllama",
+          "line": 139,
+          "severity": "warning",
+          "category": "duplicate",
+          "message": "Duplicate block (6+ lines) also at line 249.",
+          "suggestion": "Extract shared logic into a reusable function.",
+          "rule": "duplicate:block"
+        },
+        {
+          "function": "callHuggingFace",
+          "line": 162,
+          "severity": "warning",
+          "category": "duplicate",
+          "message": "Duplicate block (6+ lines) also at line 262.",
+          "suggestion": "Extract shared logic into a reusable function.",
+          "rule": "duplicate:block"
+        },
+        {
+          "function": "parseResponse",
+          "line": 305,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "handleError",
+          "line": 373,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        }
+      ]
+    },
+    {
+      "file": "src/graph/GraphPanel.ts",
+      "issueCount": 3,
+      "issues": [
+        {
+          "function": "renderImpact",
+          "line": 68,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "renderImpact",
+          "line": 79,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        },
+        {
+          "function": "buildHtml",
+          "line": 238,
+          "severity": "warning",
+          "category": "code-smell",
+          "message": "Function is 88 lines long — split it into smaller functions.",
+          "suggestion": "Aim for under 30 lines per function.",
+          "rule": "js:long-function"
+        }
+      ]
+    },
+    {
+      "file": "src/rules/reactRules.ts",
+      "issueCount": 2,
+      "issues": [
+        {
+          "function": "detectStateSprawl",
+          "line": 316,
+          "severity": "warning",
+          "category": "duplicate",
+          "message": "Duplicate block (6+ lines) also at line 344.",
+          "suggestion": "Extract shared logic into a reusable function.",
+          "rule": "duplicate:block"
+        },
+        {
+          "function": "detectStateSprawl",
+          "line": 317,
+          "severity": "warning",
+          "category": "duplicate",
+          "message": "Duplicate block (6+ lines) also at line 345.",
+          "suggestion": "Extract shared logic into a reusable function.",
+          "rule": "duplicate:block"
+        }
+      ]
+    },
+    {
+      "file": "src/AnalysisOrchestrator.ts",
+      "issueCount": 1,
+      "issues": [
+        {
+          "function": "runAiPhase",
+          "line": 117,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        }
+      ]
+    },
+    {
+      "file": "src/graph/PreciseRelationships.ts",
+      "issueCount": 1,
+      "issues": [
+        {
+          "function": "incoming",
+          "line": 121,
+          "severity": "warning",
+          "category": "duplicate",
+          "message": "Duplicate block (6+ lines) also at line 132.",
+          "suggestion": "Extract shared logic into a reusable function.",
+          "rule": "duplicate:block"
+        }
+      ]
+    },
+    {
+      "file": "src/graph/ListPanel.ts",
+      "issueCount": 1,
+      "issues": [
+        {
+          "function": "makeNonce",
+          "line": 180,
+          "severity": "warning",
+          "category": "security",
+          "message": "Math.random() is not cryptographically secure.",
+          "suggestion": "Use crypto.randomBytes() or crypto.randomUUID() for security-sensitive values.",
+          "rule": "js:insecure-random"
+        }
+      ]
+    },
+    {
+      "file": "src/context/FileSummarizer.ts",
+      "issueCount": 1,
+      "issues": [
+        {
+          "function": "saveCache",
+          "line": 123,
+          "severity": "hint",
+          "category": "code-smell",
+          "message": "console statement found — remove before shipping.",
+          "suggestion": "Use a logging library like winston or pino.",
+          "rule": "js:no-console"
+        }
+      ]
+    }
+  ]
+}

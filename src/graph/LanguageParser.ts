@@ -46,14 +46,19 @@ const GRAMMAR_FILES: Record<string, string> = {
 // Kept tiny on purpose — only the declarations v1 needs.
 const DECLARATION_TYPES: Record<string, Record<string, ParsedSymbol['kind']>> = {
   javascript: {
-    function_declaration: 'function',
-    method_definition:    'method',
-    class_declaration:    'class',
+    function_declaration:       'function',
+    method_definition:          'method',
+    class_declaration:          'class',
+    // Arrow functions assigned to a const at any scope level.
+    // e.g. const analyzeDocument = async (...) => { ... }
+    // e.g. const ensureGraph = async (): Promise<void> => { ... }
+    lexical_declaration:        'function',
   },
   typescript: {
-    function_declaration: 'function',
-    method_definition:    'method',
-    class_declaration:    'class',
+    function_declaration:       'function',
+    method_definition:          'method',
+    class_declaration:          'class',
+    lexical_declaration:        'function',
   },
   python: {
     function_definition: 'function',
@@ -145,16 +150,25 @@ export class LanguageParser {
     this.walk(tree.rootNode, node => {
       const kind = declTypes[node.type];
       if (kind) {
-        const nameNode = node.childForFieldName('name');
-        if (nameNode && nameNode.text) {
-          symbols.push({
-            name: nameNode.text,
-            kind,
-            line: node.startPosition.row,
-            // The name's column, so the call-hierarchy provider can place the
-            // cursor exactly on the symbol name rather than the line start.
-            nameColumn: nameNode.startPosition.column,
-          });
+        // Standard declarations (function_declaration, method_definition,
+        // class_declaration) expose a "name" field directly.
+        if (node.type !== 'lexical_declaration') {
+          const nameNode = node.childForFieldName('name');
+          if (nameNode && nameNode.text) {
+            symbols.push({
+              name: nameNode.text,
+              kind,
+              line: node.startPosition.row,
+              nameColumn: nameNode.startPosition.column,
+            });
+          }
+        } else {
+          // lexical_declaration covers `const foo = () => ...` and
+          // `const foo = async function ...`. We extract every declarator
+          // that has an arrow_function or function_expression as its value,
+          // so only real function-valued consts become symbols — not
+          // `const x = 5` or `const cfg = config.get(...)`.
+          this.extractArrowFunctions(node, symbols);
         }
       }
 
@@ -169,7 +183,43 @@ export class LanguageParser {
     return { symbols, calls };
   }
 
+  // Extract arrow-function or function-expression declarators from a
+  // lexical_declaration node (const/let). Each variable_declarator whose
+  // value is an arrow_function or function_expression becomes a 'function'
+  // symbol. This catches patterns like:
+  //   const analyzeDocument = async (doc, ms = 0) => { ... }
+  //   const ensureGraph = async (): Promise<void> => { ... }
+  //   const symbolUnderCursor = async () => { ... }
+  private extractArrowFunctions(lexDecl: Node, symbols: ParsedSymbol[]): void {
+    for (let i = 0; i < lexDecl.childCount; i++) {
+      const child = lexDecl.child(i);
+      if (!child || child.type !== 'variable_declarator') continue;
+
+      const nameNode  = child.childForFieldName('name');
+      const valueNode = child.childForFieldName('value');
+      if (!nameNode || !valueNode) continue;
+
+      // Only promote to a symbol when the right-hand side is actually a function.
+      const isFn = valueNode.type === 'arrow_function'
+                || valueNode.type === 'function_expression'
+                || valueNode.type === 'async_function_expression';
+
+      if (isFn && nameNode.text) {
+        symbols.push({
+          name: nameNode.text,
+          kind: 'function',
+          line: lexDecl.startPosition.row,
+          nameColumn: nameNode.startPosition.column,
+        });
+      }
+    }
+  }
+
   // Depth-first walk over the syntax tree, calling `visit` on each node.
+  // We skip into the children of lexical_declaration ourselves (via
+  // extractArrowFunctions above), so we do NOT recurse into its children
+  // here — doing so would double-visit the variable_declarator subtree and
+  // potentially emit duplicate symbols.
   private walk(node: Node, visit: (n: Node) => void): void {
     visit(node);
     for (let i = 0; i < node.childCount; i++) {

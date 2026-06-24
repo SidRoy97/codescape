@@ -62,6 +62,11 @@ const GLOBAL_PROMPT =
   'Given the list of files and their summaries, write one short paragraph (3-4 sentences) ' +
   'describing what the project is, its architecture, and how the pieces fit. Reply with plain text only.';
 
+const FILE_SUMMARY_PROMPT =
+  'In exactly ONE sentence under 20 words, describe what this file does. ' +
+  'Start with a verb. Focus on the single responsibility. ' +
+  'Return only the sentence — no filename, no markdown, no extra text.';
+
 // Common built-in / global method names that are not project symbols. I drop
 // these from callers/callees so the relationships only show real functions
 // defined in this codebase, not standard-library calls like JSON.parse.
@@ -80,6 +85,12 @@ const BUILTIN_NAMES = new Set([
   'then', 'catch', 'finally',
   'toString', 'valueOf', 'call', 'apply', 'bind',
 ]);
+
+// How many lines of context to read around each symbol. Enough to capture
+// the full signature and the first chunk of the body, but not so much that
+// each AI call becomes very heavy. For symbols near the end of a file this
+// keeps them properly covered even when the file-head slice would miss them.
+const SYMBOL_CONTEXT_LINES = 80;
 
 // Single job: build the structured code-understanding document. It reads the
 // graph (for symbols + relationships) and the file summaries, asks the AI for
@@ -116,10 +127,9 @@ export class UnderstandingGenerator {
       .get<boolean>('preciseRelationships', false);
     const precise = usePrecise ? new PreciseRelationships(root) : null;
 
-    // Use file summaries only if they already exist in the cache. I do not
-    // generate them here: the per-symbol pass below already summarizes every
-    // symbol, and adding a second full AI pass for file-level summaries would
-    // roughly double the compute (and the fan noise) for little extra value.
+    // Use file summaries from the cache if available. If none exist we derive
+    // a structural fallback inline (no extra AI call) and also attempt a quick
+    // AI summary per file as part of the main pass — so the doc is never empty.
     const fileSummaries = this.summarizer.getSummaries();
 
     // Group nodes by file so each file becomes one AI call.
@@ -155,8 +165,21 @@ export class UnderstandingGenerator {
           const detail = precise ? ' (precise)' : '';
           progress.report({ message: `summarizing file ${i + 1} of ${files.length}${detail}…`, increment: (1 / files.length) * 100 });
 
-          const aiSummaries = await this.summarizeFileSymbols(root, file, nodes);
-          doc.files[file] = await this.buildFileEntry(file, nodes, graph, analyzer, fileSummaries, aiSummaries, precise);
+          // Read full file text once; all per-symbol slices come from this.
+          const fullSource = this.readFile(root, file);
+          const sourceLines = fullSource.split('\n');
+
+          const aiSummaries = await this.summarizeFileSymbols(file, nodes, sourceLines);
+
+          // Derive file-level summary: prefer the cache, then try a quick AI
+          // call from the file head, then fall back to structural description.
+          const fileSummary = fileSummaries.get(file)
+            ?? await this.deriveFileSummary(file, nodes, sourceLines)
+            ?? this.structuralFileSummary(file, nodes);
+
+          doc.files[file] = await this.buildFileEntry(
+            file, nodes, graph, analyzer, fileSummary, aiSummaries, precise,
+          );
         }
 
         // Second pass: only retry the symbols the first pass could not
@@ -190,7 +213,11 @@ export class UnderstandingGenerator {
 
       // Build the document from structure alone — no AI calls.
       for (const [file, nodes] of byFile) {
-        doc.files[file] = await this.buildFileEntry(file, nodes, graph, analyzer, fileSummaries, {}, precise);
+        const fileSummary = this.summarizer.getSummaries().get(file)
+          ?? this.structuralFileSummary(file, nodes);
+        doc.files[file] = await this.buildFileEntry(
+          file, nodes, graph, analyzer, fileSummary, {}, precise,
+        );
       }
     }
 
@@ -228,22 +255,49 @@ export class UnderstandingGenerator {
     return map;
   }
 
-  // Ask the AI for one-line summaries of every symbol in one file, in a single
-  // call. Returns an empty map if the AI is unavailable — callers then fall
-  // back to a structural description.
-  private async summarizeFileSymbols(root: string, file: string, nodes: CodeNode[]): Promise<AiSummaryMap> {
-    let code = '';
+  // Read a file from disk, returning empty string on any error.
+  private readFile(root: string, relFile: string): string {
     try {
-      // I read a moderate slice of each file: enough that symbols lower in
-      // the file still get good summaries, but not so much that each AI call
-      // becomes very heavy. Very large files are still capped here.
-      code = fs.readFileSync(path.join(root, file), 'utf8').slice(0, 9000);
+      return fs.readFileSync(path.join(root, relFile), 'utf8');
     } catch {
-      return {};
+      return '';
     }
+  }
 
-    const symbolList = nodes.map(n => `${n.kind} ${n.name} (line ${n.line + 1})`).join('\n');
-    const user = `File: ${file}\nSymbols:\n${symbolList}\n\nCode:\n\`\`\`\n${code}\n\`\`\``;
+  // Build a targeted code slice for one symbol: SYMBOL_CONTEXT_LINES lines
+  // starting a few lines before the symbol's definition. This ensures symbols
+  // near the end of large files are summarized from their actual code instead
+  // of getting nothing because the file-head slice was exhausted.
+  private symbolSlice(sourceLines: string[], symbolLine: number): string {
+    const start = Math.max(0, symbolLine - 3);
+    const end   = Math.min(sourceLines.length, start + SYMBOL_CONTEXT_LINES);
+    return sourceLines.slice(start, end).join('\n');
+  }
+
+  // Ask the AI for one-line summaries of every symbol in one file, in a single
+  // call. Uses a targeted slice around each symbol so even late-file symbols
+  // get proper context. Returns an empty map if the AI is unavailable.
+  private async summarizeFileSymbols(
+    file: string,
+    nodes: CodeNode[],
+    sourceLines: string[],
+  ): Promise<AiSummaryMap> {
+    if (sourceLines.length === 0) return {};
+
+    // Build a composite prompt that includes a targeted snippet for each symbol.
+    // We group symbols and provide their relevant code slices so the model has
+    // the actual implementation context for every symbol, not just the ones
+    // that happen to appear in the first 9000 characters of the file.
+    const symbolSections = nodes.map(n => {
+      const slice = this.symbolSlice(sourceLines, n.line);
+      return `### ${n.kind} ${n.name} (line ${n.line + 1})\n\`\`\`\n${slice}\n\`\`\``;
+    }).join('\n\n');
+
+    // Cap the total prompt size so we don't blow the model's context window
+    // on very large files. 12000 chars gives comfortable headroom for most
+    // models while covering significantly more of the file than the old 9000
+    // char head-slice.
+    const user = `File: ${file}\n\nSymbols to document:\n${symbolSections}`.slice(0, 12000);
 
     try {
       const reply = await this.ai.generateText(FILE_PROMPT, user);
@@ -254,6 +308,44 @@ export class UnderstandingGenerator {
     } catch {
       return {};
     }
+  }
+
+  // Attempt a short AI summary for the file itself using just the file head.
+  // Returns null if the AI fails so the caller can fall through to the
+  // structural fallback. This replaces the "No file summary available" message
+  // that showed up whenever FileSummarizer hadn't been run separately.
+  private async deriveFileSummary(
+    file: string,
+    nodes: CodeNode[],
+    sourceLines: string[],
+  ): Promise<string | null> {
+    if (sourceLines.length === 0) return null;
+    const snippet = sourceLines.slice(0, 60).join('\n');
+    const symbolList = nodes.map(n => `${n.kind} ${n.name}`).join(', ');
+    const user = `File: ${file}\nSymbols: ${symbolList}\n\`\`\`\n${snippet}\n\`\`\``;
+    try {
+      const reply = await this.ai.generateText(FILE_SUMMARY_PROMPT, user);
+      if (reply && reply.trim()) return reply.trim();
+    } catch {
+      // fall through
+    }
+    return null;
+  }
+
+  // Build a structural (no-AI) file summary from the symbol list. Always
+  // produces something useful so the doc is never blank.
+  private structuralFileSummary(file: string, nodes: CodeNode[]): string {
+    const classes   = nodes.filter(n => n.kind === 'class').map(n => n.name);
+    const functions = nodes.filter(n => n.kind === 'function').map(n => n.name);
+    const basename  = path.basename(file, path.extname(file));
+
+    if (classes.length > 0) {
+      return `Defines ${classes.join(', ')} — ${basename} class${classes.length > 1 ? 'es' : ''} with ${nodes.length} symbol(s).`;
+    }
+    if (functions.length > 0) {
+      return `Exports ${functions.slice(0, 3).join(', ')}${functions.length > 3 ? ` and ${functions.length - 3} more` : ''} from ${basename}.`;
+    }
+    return `${basename} module with ${nodes.length} symbol(s).`;
   }
 
   // Find symbols still carrying a fallback summary, retry just those (grouped
@@ -290,7 +382,8 @@ export class UnderstandingGenerator {
 
       // Send only the still-missing symbols so the retry call is small.
       const missingNodes = allNodes.filter(n => names.has(n.name));
-      const retry = await this.summarizeFileSymbols(root, file, missingNodes);
+      const sourceLines  = this.readFile(root, file).split('\n');
+      const retry = await this.summarizeFileSymbols(file, missingNodes, sourceLines);
 
       // Patch only where the retry produced a real (non-empty) summary.
       const entry = doc.files[file];
@@ -316,13 +409,13 @@ export class UnderstandingGenerator {
     nodes: CodeNode[],
     graph: CodeGraph,
     analyzer: ImpactAnalyzer,
-    fileSummaries: Map<string, string>,
+    fileSummary: string,
     aiSummaries: AiSummaryMap,
     precise: PreciseRelationships | null,
   ): Promise<FileEntry> {
-    const classes = nodes.filter(n => n.kind === 'class').sort((a, b) => a.line - b.line);
+    const classes   = nodes.filter(n => n.kind === 'class').sort((a, b) => a.line - b.line);
     const functions = nodes.filter(n => n.kind === 'function');
-    const methods = nodes.filter(n => n.kind === 'method');
+    const methods   = nodes.filter(n => n.kind === 'method');
 
     const symbols: SymbolEntry[] = [];
 
@@ -354,14 +447,17 @@ export class UnderstandingGenerator {
       symbols.push(entry);
     }
 
-    return {
-      summary: fileSummaries.get(file) ?? 'No file summary available — run Summarize Project Files.',
-      symbols,
-    };
+    return { summary: fileSummary, symbols };
   }
 
   // Turn a node into a symbol entry with its relationships and summary.
-  private async toSymbolEntry(node: CodeNode, graph: CodeGraph, analyzer: ImpactAnalyzer, ai: AiSummaryMap, precise: PreciseRelationships | null): Promise<SymbolEntry> {
+  private async toSymbolEntry(
+    node: CodeNode,
+    graph: CodeGraph,
+    analyzer: ImpactAnalyzer,
+    ai: AiSummaryMap,
+    precise: PreciseRelationships | null,
+  ): Promise<SymbolEntry> {
     const rel = await this.relationships(node, graph, analyzer, precise);
     return {
       name: node.name,
