@@ -220,8 +220,12 @@ export class LanguageParser {
       );
 
       if (isFn) {
-        // Arrow/function expression — treat as a function symbol regardless
-        // of scope depth (closures inside activateInternal matter too).
+        // Only promote arrow/function expressions at module scope (0) or
+        // one level deep (1 = inside a class body or the top of a large
+        // module function like activateInternal). Anything deeper is an
+        // implementation-detail closure — filterBuiltins, clean, classFor —
+        // that should not appear in the understanding doc.
+        if (scopeDepth > 1) continue;
         symbols.push({
           name: nameNode.text,
           kind: 'function',
