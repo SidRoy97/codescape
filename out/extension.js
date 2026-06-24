@@ -46,6 +46,7 @@ const DuplicateScanner_1 = require("./scanners/DuplicateScanner");
 const AiScanner_1 = require("./scanners/AiScanner");
 const TaintScanner_1 = require("./scanners/TaintScanner");
 const CrossFileTaintScanner_1 = require("./scanners/CrossFileTaintScanner");
+const CommentGenerator_1 = require("./reports/CommentGenerator");
 const AnalysisOrchestrator_1 = require("./AnalysisOrchestrator");
 // UI publishers
 const DiagnosticsPublisher_1 = require("./publishers/DiagnosticsPublisher");
@@ -150,6 +151,8 @@ function activateInternal(context) {
     const taintScanner = new TaintScanner_1.TaintScanner(parser);
     // Phase 2: cross-file via the code graph, on-demand.
     const crossFileTaint = new CrossFileTaintScanner_1.CrossFileTaintScanner(parser, () => graphBuilder.getGraph());
+    // Auto-comment generator — inserts JSDoc/docstrings above uncommented functions.
+    const commentGenerator = new CommentGenerator_1.CommentGenerator(parser, ai);
     // Blast-radius status bar item.
     const blastBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
     blastBar.command = 'codereach.showBlastRadius';
@@ -395,6 +398,21 @@ function activateInternal(context) {
         }
         catch (e) {
             vscode.window.showErrorMessage(`CodeReach: Understanding doc failed — ${e}`);
+        }
+    }));
+    // Auto-comment: insert JSDoc/docstrings above uncommented functions in the active file.
+    context.subscriptions.push(vscode.commands.registerCommand('codereach.generateComments', async () => {
+        const editor = vscode.window.activeTextEditor
+            ?? vscode.window.visibleTextEditors.find(e => e.document.uri.scheme === 'file');
+        if (!editor) {
+            vscode.window.showWarningMessage('CodeReach: Open a file first.');
+            return;
+        }
+        try {
+            await commentGenerator.generateForFile(editor.document);
+        }
+        catch (e) {
+            vscode.window.showErrorMessage(`CodeReach: Comment generation failed — ${e}`);
         }
     }));
     // --- Taint scan commands ---
