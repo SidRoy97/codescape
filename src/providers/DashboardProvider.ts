@@ -23,6 +23,16 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
       view.webview.onDidReceiveMessage(message => this.handleMessage(message)),
     );
 
+    // Refresh every time the panel becomes visible — covers the case where
+    // the user opens the dashboard while background analysis is still running,
+    // or after it has already finished. Without this the webview stays frozen
+    // at 0 issues until the user manually clicks Workspace.
+    this.disposables.push(
+      view.onDidChangeVisibility(() => {
+        if (view.visible) this.refresh();
+      }),
+    );
+
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor(editor => {
         if (this.scope.kind === 'file' && editor && editor.document.uri.scheme === 'file') {
