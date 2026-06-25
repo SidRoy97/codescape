@@ -623,11 +623,35 @@ function activateInternal(context: vscode.ExtensionContext): void {
 
   setTimeout(() => {
     graphBuilder.build()
-      .then(() => {
+      .then(async () => {
         codeLens.refresh();
         const active = vscode.window.activeTextEditor;
         if (active) updateBlastBar(active.document);
         liveImpactBar.update(active);
+
+        // Auto-analyze the workspace in the background so the dashboard
+        // shows real results on first open instead of misleading "0 issues".
+        // We run this silently — no progress notification, no interruption.
+        try {
+          const exts = config.getLanguages().flatMap(langToExts).join(',');
+          const uris = await vscode.workspace.findFiles(
+            `**/*.{${exts}}`,
+            '{**/node_modules/**,**/dist/**,**/out/**,**/static/**,**/vendor/**,**/assets/**,**/__pycache__/**,**/venv/**,**/.venv/**,**/env/**,**/migrations/**,**/generated/**,**/target/**,**/.next/**,**/coverage/**,**/*.min.js,**/*.bundle.js,**/*.chunk.js}',
+          );
+          for (const uri of uris) {
+            try {
+              const doc = await vscode.workspace.openTextDocument(uri);
+              await analyzeDocument(doc);
+            } catch {
+              // skip unreadable files silently
+            }
+          }
+          // Final refresh so the dashboard always shows the completed state.
+          dashboard.refresh();
+          statusBar.render();
+        } catch {
+          // never let background analysis crash the extension
+        }
       })
       .catch(() => {});
   }, 2500);
