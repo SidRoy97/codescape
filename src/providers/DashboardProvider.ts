@@ -70,9 +70,9 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
         'codereach.generateUnderstanding',
         'codereach.reportIssues',
         'codereach.generateConfig',
-        'codereach.taintScan',
         'codereach.taintScanWorkspace',
         'codereach.generateComments',
+        'codereach.generateCommentsWorkspace',
       ]);
       if (allowed.has(msg.id)) {
         if (msg.id === 'codereach.analyzeFile') this.scopeToActiveFile();
@@ -274,7 +274,8 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
     <button class="btn" data-cmd="codereach.generateUnderstanding"><span class="ic">📖</span>Understanding Doc</button>
     <button class="btn" data-cmd="codereach.showBlastRadius"><span class="ic">💥</span>Blast Radius</button>
     <button class="btn" data-cmd="codereach.findUnused"><span class="ic">🔍</span>Unused</button>
-    <button class="btn" data-cmd="codereach.generateComments"><span class="ic">✍️</span>Auto-Comment</button>
+    <button class="btn" data-cmd="codereach.generateComments">Auto-Comment: This File</button>
+    <button class="btn" data-cmd="codereach.generateCommentsWorkspace">Auto-Comment: Workspace</button>
   </div>
   <button class="btn toggle ${preciseOn ? 'active' : ''}" data-precise="1" title="When on, the Understanding Doc resolves relationships from the language server (ground truth) instead of the fast heuristic. Slower; needs the language extension installed.">
     <span class="ic">${preciseOn ? '🎯' : '⚡'}</span>Precise relationships: ${preciseOn ? 'On' : 'Off'}
@@ -289,11 +290,10 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
 <div class="group">
   <div class="group-title">Security — Taint Analysis</div>
   <div class="btn-row">
-    <button class="btn btn-taint" data-cmd="codereach.taintScan"><span class="ic">🔬</span>Taint: This File</button>
-    <button class="btn btn-taint" data-cmd="codereach.taintScanWorkspace"><span class="ic">🕸</span>Taint: Workspace</button>
+    <button class="btn btn-taint" data-cmd="codereach.taintScanWorkspace">Taint Scan</button>
   </div>
   <div class="note">
-    🔬 <b>Taint Scan</b> follows untrusted user input — from form fields, HTTP parameters, and CLI args — through your code to dangerous operations like database queries, shell commands, and HTML output. It flags flows where that input reaches a sink without being sanitized first. <b>This File</b> checks one file instantly. <b>Workspace</b> follows the data across files using your code graph, catching flows that span multiple functions and modules.
+    🔬 <b>Taint Scan</b> follows untrusted user input — from HTTP parameters, form fields, CLI args, and environment variables — through your code to dangerous operations like database queries, shell commands, and HTML output. It flags every path where that input reaches a sink without being sanitized, across all files in the workspace.
   </div>
 </div>
 

@@ -1,6 +1,6 @@
 {
   "name": "codereach",
-  "displayName": "CodeReach — Code Quality & Impact Graph",
+  "displayName": "CodeReach \u2014 Code Quality & Impact Graph",
   "description": "Security, code quality, SOLID analysis, AI-powered fixes, and an interactive code impact graph. Works with Ollama, Groq, HuggingFace, and more.",
   "version": "0.1.4",
   "publisher": "SidRoy300497",
@@ -88,12 +88,8 @@
         "title": "CodeReach: Safety Check (What Breaks if I Change This)"
       },
       {
-        "command": "codereach.taintScan",
-        "title": "CodeReach: Taint Scan — This File (Source-to-Sink)"
-      },
-      {
         "command": "codereach.taintScanWorkspace",
-        "title": "CodeReach: Taint Scan — Workspace (Cross-File)"
+        "title": "CodeReach: Taint Scan \u2014 Workspace"
       },
       {
         "command": "codereach.generateComments",
@@ -119,11 +115,11 @@
             "openai-compatible"
           ],
           "enumDescriptions": [
-            "Local models via Ollama — 100% free, no account, no key",
-            "Groq cloud — free account, no credit card, very fast",
-            "Hugging Face Inference API — free account, huge model selection",
-            "OpenRouter — free tier models available",
-            "Anthropic Claude — paid API key required",
+            "Local models via Ollama \u2014 100% free, no account, no key",
+            "Groq cloud \u2014 free account, no credit card, very fast",
+            "Hugging Face Inference API \u2014 free account, huge model selection",
+            "OpenRouter \u2014 free tier models available",
+            "Anthropic Claude \u2014 paid API key required",
             "Any OpenAI-compatible server (LM Studio, vLLM, llama.cpp)"
           ],
           "markdownDescription": "Which AI backend to use.\n\n**Free options:** `ollama` (no account), `groq` (free account), `huggingface` (free account)",
@@ -167,7 +163,7 @@
         "codereach.complexityThreshold": {
           "type": "number",
           "default": 10,
-          "description": "Cyclomatic complexity threshold — functions above this are flagged."
+          "description": "Cyclomatic complexity threshold \u2014 functions above this are flagged."
         },
         "codereach.duplicateLineThreshold": {
           "type": "number",
@@ -227,10 +223,6 @@
         {
           "command": "codereach.showBlastRadius",
           "group": "codereach@5"
-        },
-        {
-          "command": "codereach.taintScan",
-          "group": "codereach@6"
         },
         {
           "command": "codereach.generateComments",

@@ -8,7 +8,6 @@ import { StaticScanner }        from './scanners/StaticScanner';
 import { ComplexityScanner }    from './scanners/ComplexityScanner';
 import { DuplicateScanner }     from './scanners/DuplicateScanner';
 import { AiScanner }            from './scanners/AiScanner';
-import { TaintScanner }         from './scanners/TaintScanner';
 import { CrossFileTaintScanner } from './scanners/CrossFileTaintScanner';
 import { CommentGenerator }    from './reports/CommentGenerator';
 import { AnalysisOrchestrator } from './AnalysisOrchestrator';
@@ -122,7 +121,6 @@ function activateInternal(context: vscode.ExtensionContext): void {
 
   // --- Taint scanners ---
   // Phase 1: intra-file, on-demand.
-  const taintScanner = new TaintScanner(parser);
   // Phase 2: cross-file via the code graph, on-demand.
   const crossFileTaint = new CrossFileTaintScanner(parser, () => graphBuilder.getGraph());
 
@@ -443,53 +441,44 @@ function activateInternal(context: vscode.ExtensionContext): void {
     }),
   );
 
-  // --- Taint scan commands ---
+  // Auto-comment: workspace mode — generate comments for all files.
 
-  // Phase 1: intra-file on-demand taint scan.
+  // Auto-comment: workspace — generate comments for every supported file.
   context.subscriptions.push(
-    vscode.commands.registerCommand('codereach.taintScan', async () => {
-      const editor = vscode.window.activeTextEditor
-        ?? vscode.window.visibleTextEditors.find(e => e.document.uri.scheme === 'file');
-      if (!editor) {
-        vscode.window.showWarningMessage('CodeReach: Open a file first.');
-        return;
+    vscode.commands.registerCommand('codereach.generateCommentsWorkspace', async () => {
+      // Probe AI first so we can offer the no-AI fallback before iterating
+      // over every file in the workspace.
+      const aiReady = await commentGenerator.probeAi();
+      let useAi = true;
+      if (!aiReady) {
+        const choice = await vscode.window.showWarningMessage(
+          'CodeReach: No AI response. ' +
+          'For Ollama: run "ollama serve" in a terminal, then click Auto-Comment: Workspace again. ' +
+          'If you have not installed Ollama yet: get it from ollama.com and run "ollama pull <model>" first. ' +
+          'You can also switch to a cloud provider in Settings → codereach.aiProvider.',
+          'Comment without AI', 'Cancel',
+        );
+        if (!choice || choice === 'Cancel') return;
+        useAi = false;
       }
-
       await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: 'CodeReach: Running taint scan…' },
-        async () => {
-          let issues: Awaited<ReturnType<typeof taintScanner.scan>>;
+        {
+          location:    vscode.ProgressLocation.Notification,
+          title:       'CodeReach: Generating comments across workspace…',
+          cancellable: true,
+        },
+        async (progress, token) => {
           try {
-            issues = await taintScanner.scan(editor.document);
+            await commentGenerator.generateForWorkspace(progress, token, useAi);
           } catch (e) {
-            vscode.window.showErrorMessage(`CodeReach: Taint scan failed — ${e}`);
-            return;
+            vscode.window.showErrorMessage(`CodeReach: Comment generation failed — ${e}`);
           }
-
-          const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-          const relFile = root
-            ? path.relative(root, editor.document.uri.fsPath)
-            : editor.document.uri.fsPath;
-
-          const rows: ListRow[] = issues.map(issue => ({
-            label:  issue.message,
-            detail: `${relFile}:${issue.line + 1}  —  ${issue.suggestion ?? ''}`,
-            file:   relFile,
-            line:   issue.line,
-            tone:   'danger' as const,
-          }));
-
-          listPanel.show({
-            title: `Taint Scan — ${path.basename(editor.document.uri.fsPath)}`,
-            intro: rows.length === 0
-              ? 'No source-to-sink flows found in this file.'
-              : `${rows.length} taint flow(s) found. Click a row to jump to the sink line.`,
-            rows,
-          });
         },
       );
     }),
   );
+
+  // --- Taint scan commands ---
 
   // Phase 2: cross-file workspace taint scan using the code graph.
   context.subscriptions.push(
