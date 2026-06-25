@@ -26,16 +26,25 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
       view.webview.onDidReceiveMessage(message => this.handleMessage(message)),
     );
 
-    // When the dashboard becomes visible and the store is empty, kick off
-    // workspace analysis automatically so the user never sees 0 issues on
-    // first open. If analysis already ran, just refresh the view.
+    // When the dashboard becomes visible:
+    // - If the store already has results, just refresh.
+    // - If empty, trigger a silent background analysis so the user
+    //   never sees 0 issues on first open.
+    // The 500ms delay gives the extension host time to fully activate
+    // before we start opening documents.
     this.disposables.push(
       view.onDidChangeVisibility(() => {
         if (!view.visible) return;
-        if (this.store.getAll().length === 0) {
-          this.triggerAnalysis();
-        } else {
+        if (this.store.getAll().length > 0) {
           this.refresh();
+        } else {
+          setTimeout(() => {
+            if (this.store.getAll().length === 0) {
+              this.triggerAnalysis();
+            } else {
+              this.refresh();
+            }
+          }, 500);
         }
       }),
     );
@@ -340,9 +349,9 @@ ${categoryChart}
 ${fileCards}
 ` : `
 <div class="empty">
-  <div class="empty-icon">✅</div>
-  <div>${this.scope.kind === 'file' ? 'No issues in this file.' : 'No issues found yet.'}</div>
-  <div style="margin-top:7px;font-size:10px">Click "This File" or "Workspace" to analyze.</div>
+  <div class="empty-icon">${this.scope.kind === 'file' ? '✅' : '⏳'}</div>
+  <div>${this.scope.kind === 'file' ? 'No issues in this file.' : 'Analyzing workspace…'}</div>
+  <div style="margin-top:7px;font-size:10px">${this.scope.kind === 'file' ? '' : 'Results will appear here in a moment.'}</div>
 </div>
 `}
 
