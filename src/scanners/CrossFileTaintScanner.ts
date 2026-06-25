@@ -99,7 +99,6 @@ export class CrossFileTaintScanner {
     // Phase 0: scan ALL workspace files for intra-file taint, regardless of
     // whether the graph has an entry for them. This way taint is never
     // invisible just because a file has no outgoing calls.
-    const supportedExts = /\.(js|jsx|ts|tsx|py|java)$/;
     const allUris = await vscode.workspace.findFiles(
       '**/*.{js,jsx,ts,tsx,py,java}',
       '{**/node_modules/**,**/dist/**,**/out/**,**/build/**,**/target/**,**/static/**,**/vendor/**,**/assets/**,**/__pycache__/**,**/venv/**,**/.venv/**,**/env/**,**/migrations/**,**/generated/**,**/generated-sources/**,**/.next/**,**/.nuxt/**,**/coverage/**,**/__generated__/**,**/*.min.js,**/*.bundle.js,**/*.chunk.js,**/*.pyc}',
