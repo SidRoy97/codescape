@@ -10,6 +10,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
   static readonly viewId = 'codereach.dashboard';
   private view?: vscode.WebviewView;
   private scope: ViewScope = { kind: 'idle' };
+  private analysisAttempted = false;
   private readonly disposables: vscode.Disposable[] = [];
 
   constructor(
@@ -40,6 +41,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
         } else {
           setTimeout(() => {
             if (this.store.getAll().length === 0) {
+              this.analysisAttempted = true;
               this.triggerAnalysis();
             } else {
               this.refresh();
@@ -352,9 +354,9 @@ ${categoryChart}
 ${fileCards}
 ` : `
 <div class="empty">
-  <div class="empty-icon">${this.scope.kind === 'file' ? '✅' : '⏳'}</div>
-  <div>${this.scope.kind === 'file' ? 'No issues in this file.' : 'Analyzing workspace…'}</div>
-  <div style="margin-top:7px;font-size:10px">${this.scope.kind === 'file' ? '' : 'Results will appear here in a moment.'}</div>
+  <div class="empty-icon">✅</div>
+  <div>${this.scope.kind === 'file' ? 'No issues in this file.' : 'No issues found yet.'}</div>
+  <div style="margin-top:7px;font-size:10px">${this.scope.kind === 'file' ? '' : 'Click \"This File\" or \"Workspace\" to analyze.'}</div>
 </div>
 `}
 

@@ -197,15 +197,19 @@ function activateInternal(context: vscode.ExtensionContext): void {
         `**/*.{${exts}}`,
         '{**/node_modules/**,**/dist/**,**/out/**,**/static/**,**/vendor/**,**/assets/**,**/__pycache__/**,**/venv/**,**/.venv/**,**/env/**,**/migrations/**,**/generated/**,**/target/**,**/.next/**,**/coverage/**,**/*.min.js,**/*.bundle.js,**/*.chunk.js}',
       );
+      console.log(`CodeReach: background analysis — found ${uris.length} files`);
       for (const uri of uris) {
         try {
           const doc = await vscode.workspace.openTextDocument(uri);
           await analyzeDocument(doc);
         } catch { /* skip unreadable */ }
       }
+      console.log(`CodeReach: background analysis done — ${store.getAll().length} files in store`);
       dashboard.refresh();
       statusBar.render();
-    } catch { /* never crash the extension */ }
+    } catch (e) {
+      console.error('CodeReach: background analysis error', e);
+    }
   };
 
   // --- Helper: update the blast-radius bar ---
