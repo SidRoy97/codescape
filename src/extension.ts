@@ -155,13 +155,25 @@ function activateInternal(context: vscode.ExtensionContext): void {
   // --- Helper: analyze a document if it is a supported file ---
   // Patterns for third-party files that should never be analyzed.
   const SKIP_ANALYSIS = [
-    /[/\\]static[/\\]/,
-    /[/\\]vendor[/\\]/,
-    /[/\\]assets[/\\]/,
-    /[/\\]node_modules[/\\]/,
+    /[\/\\]static[\/\\]/,
+    /[\/\\]vendor[\/\\]/,
+    /[\/\\]assets[\/\\]/,
+    /[\/\\]node_modules[\/\\]/,
+    /[\/\\]target[\/\\]/,
+    /[\/\\]__pycache__[\/\\]/,
+    /[\/\\]venv[\/\\]/,
+    /[\/\\]\.venv[\/\\]/,
+    /[\/\\]env[\/\\]/,
+    /[\/\\]migrations[\/\\]/,
+    /[\/\\]generated[\/\\]/,
+    /[\/\\]\.next[\/\\]/,
+    /[\/\\]\.nuxt[\/\\]/,
+    /[\/\\]coverage[\/\\]/,
+    /[\/\\]__generated__[\/\\]/,
     /\.min\.[jt]s$/,
     /\.bundle\.[jt]s$/,
     /\.chunk\.[jt]s$/,
+    /\.pyc$/,
   ];
 
   const analyzeDocument = async (document: vscode.TextDocument, debounceMs = 0): Promise<void> => {
@@ -229,7 +241,7 @@ function activateInternal(context: vscode.ExtensionContext): void {
       const exts = config.getLanguages().flatMap(langToExts).join(',');
       const uris = await vscode.workspace.findFiles(
         `**/*.{${exts}}`,
-        '{**/node_modules/**,**/dist/**,**/out/**,**/static/**,**/vendor/**,**/assets/**,**/*.min.js,**/*.bundle.js,**/*.chunk.js}',
+        '{**/node_modules/**,**/dist/**,**/out/**,**/build/**,**/target/**,**/static/**,**/vendor/**,**/assets/**,**/__pycache__/**,**/venv/**,**/.venv/**,**/env/**,**/migrations/**,**/generated/**,**/generated-sources/**,**/.next/**,**/.nuxt/**,**/coverage/**,**/__generated__/**,**/*.min.js,**/*.bundle.js,**/*.chunk.js,**/*.pyc}',
       );
       if (!uris.length) { vscode.window.showWarningMessage('CodeReach: No supported files found.'); return; }
 

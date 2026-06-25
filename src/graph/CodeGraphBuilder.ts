@@ -8,7 +8,7 @@ import { CodeGraph, CodeNode, CodeEdge } from './CodeGraphTypes';
 // jquery, etc.) don't pollute the graph with single-letter functions and
 // false caller/callee relationships.
 const FILE_GLOB   = '**/*.{js,jsx,ts,tsx,py,java}';
-const IGNORE_GLOB = '{**/node_modules/**,**/dist/**,**/out/**,**/build/**,**/static/**,**/vendor/**,**/assets/**,**/*.min.js,**/*.bundle.js,**/*.chunk.js}';
+const IGNORE_GLOB = '{**/node_modules/**,**/dist/**,**/out/**,**/build/**,**/target/**,**/static/**,**/vendor/**,**/assets/**,**/__pycache__/**,**/venv/**,**/.venv/**,**/env/**,**/migrations/**,**/generated/**,**/generated-sources/**,**/.next/**,**/.nuxt/**,**/coverage/**,**/__generated__/**,**/*.min.js,**/*.bundle.js,**/*.chunk.js,**/*.pyc}';
 
 export class CodeGraphBuilder {
   private graph: CodeGraph = { nodes: [], edges: [] };

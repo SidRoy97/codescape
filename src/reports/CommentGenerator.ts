@@ -110,7 +110,7 @@ export class CommentGenerator {
     const unique = [...new Set(Object.values(EXT_MAP).flat())];
     const uris   = await vscode.workspace.findFiles(
       `**/*.{${unique.join(',')}}`,
-      '{**/node_modules/**,**/dist/**,**/out/**,**/static/**,**/vendor/**,**/*.min.js}',
+      '{**/node_modules/**,**/dist/**,**/out/**,**/build/**,**/target/**,**/static/**,**/vendor/**,**/assets/**,**/__pycache__/**,**/venv/**,**/.venv/**,**/env/**,**/migrations/**,**/generated/**,**/generated-sources/**,**/.next/**,**/.nuxt/**,**/coverage/**,**/__generated__/**,**/*.min.js,**/*.bundle.js,**/*.chunk.js,**/*.pyc}',
     );
 
     if (!uris.length) {
