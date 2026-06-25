@@ -153,9 +153,21 @@ function activateInternal(context: vscode.ExtensionContext): void {
   );
 
   // --- Helper: analyze a document if it is a supported file ---
+  // Patterns for third-party files that should never be analyzed.
+  const SKIP_ANALYSIS = [
+    /[/\\]static[/\\]/,
+    /[/\\]vendor[/\\]/,
+    /[/\\]assets[/\\]/,
+    /[/\\]node_modules[/\\]/,
+    /\.min\.[jt]s$/,
+    /\.bundle\.[jt]s$/,
+    /\.chunk\.[jt]s$/,
+  ];
+
   const analyzeDocument = async (document: vscode.TextDocument, debounceMs = 0): Promise<void> => {
     if (document.uri.scheme !== 'file') return;
     if (!SUPPORTED_LANGUAGES.includes(document.languageId)) return;
+    if (SKIP_ANALYSIS.some(p => p.test(document.uri.fsPath))) return;
     try {
       await orchestrator.analyze(document, debounceMs);
     } catch (e) {
@@ -216,7 +228,8 @@ function activateInternal(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('codereach.analyzeWorkspace', async () => {
       const exts = config.getLanguages().flatMap(langToExts).join(',');
       const uris = await vscode.workspace.findFiles(
-        `**/*.{${exts}}`, '{**/node_modules/**,**/dist/**,**/out/**}',
+        `**/*.{${exts}}`,
+        '{**/node_modules/**,**/dist/**,**/out/**,**/static/**,**/vendor/**,**/assets/**,**/*.min.js,**/*.bundle.js,**/*.chunk.js}',
       );
       if (!uris.length) { vscode.window.showWarningMessage('CodeReach: No supported files found.'); return; }
 
