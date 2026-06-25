@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Codescape — AI Code Quality &amp; Impact Graph for VS Code</title>
+  <title>CodeReach — AI Code Quality & Impact Graph for VS Code</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -16,7 +16,7 @@
     h1 { font-size: 52px; font-weight: 800; margin-bottom: 16px;
          background: linear-gradient(135deg, #a78bfa, #60a5fa);
          -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .subtitle { font-size: 20px; opacity: 0.7; max-width: 600px;
+    .subtitle { font-size: 20px; opacity: 0.7; max-width: 640px;
                 margin: 0 auto 40px; line-height: 1.6; }
 
     .install-box { background: #1e1e2e; border: 1px solid #7c3aed44;
@@ -34,12 +34,22 @@
                      border: 1px solid #7c3aed; }
 
     .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-                gap: 20px; max-width: 1000px; margin: 60px auto; padding: 0 20px; }
+                gap: 20px; max-width: 1100px; margin: 60px auto; padding: 0 20px; }
     .feature { background: #1e1e2e; border: 1px solid #ffffff10;
                border-radius: 12px; padding: 24px; }
     .feature-icon { font-size: 28px; margin-bottom: 12px; }
     .feature h3 { font-size: 17px; margin-bottom: 8px; color: #f1f5f9; }
     .feature p { font-size: 14px; opacity: 0.6; line-height: 1.6; }
+
+    .taint-section { max-width: 800px; margin: 0 auto 60px; padding: 0 20px; }
+    .taint-section h2 { font-size: 28px; margin-bottom: 12px; text-align: center; }
+    .taint-section p { opacity: 0.7; line-height: 1.7; margin-bottom: 16px; text-align: center; }
+    .taint-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 24px; }
+    .taint-card { background: #1e1e2e; border: 1px solid #f9731620;
+                  border-radius: 10px; padding: 16px; }
+    .taint-card h4 { color: #f97316; font-size: 13px; font-weight: 700;
+                     text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .taint-card p { font-size: 13px; opacity: 0.6; line-height: 1.6; }
 
     .providers { text-align: center; padding: 40px 20px; }
     .providers h2 { font-size: 28px; margin-bottom: 8px; }
@@ -57,24 +67,24 @@
 <body>
 
 <div class="hero">
-  <div class="badge">🛡 Free &amp; Open Source</div>
-  <h1>Codescape</h1>
+  <div class="badge">🛡 Free &amp; Open Source · MIT</div>
+  <h1>CodeReach</h1>
   <p class="subtitle">
-    Real-time code quality, security analysis, AI-powered fixes, and an
-    interactive code impact graph for VS Code. No server required.
+    Real-time code quality, workspace-wide taint analysis, AI-powered fixes,
+    and an interactive code impact graph for VS Code. No server required.
   </p>
 
   <div class="install-box">
-    <code>code --install-extension SidRoy300497.codescape-vscode</code>
+    <code>code --install-extension SidRoy300497.codereach</code>
   </div>
 
   <div class="buttons">
     <a class="btn btn-primary"
-       href="https://marketplace.visualstudio.com/items?itemName=SidRoy300497.codescape-vscode">
+       href="https://marketplace.visualstudio.com/items?itemName=SidRoy300497.codereach">
       Install from Marketplace
     </a>
     <a class="btn btn-secondary"
-       href="https://github.com/SidRoy97/codescape">
+       href="https://github.com/SidRoy97/codereach">
       View on GitHub
     </a>
   </div>
@@ -84,17 +94,22 @@
   <div class="feature">
     <div class="feature-icon">🕸️</div>
     <h3>Code Impact Graph</h3>
-    <p>See callers, callees, and blast radius for any function. Know exactly what breaks before you change it — across your whole project.</p>
+    <p>Callers, callees, and blast radius for any function — across your whole project. Import-aware: uses actual import statements to eliminate false edges.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">🔬</div>
+    <h3>Workspace Taint Analysis</h3>
+    <p>Follows untrusted input from HTTP params, forms, and CLI args to SQL, shell, and HTML sinks — across file boundaries, for Python, Java, and JS/TS.</p>
   </div>
   <div class="feature">
     <div class="feature-icon">🔒</div>
     <h3>Security Analysis</h3>
-    <p>SQL injection, XSS, hardcoded secrets, command injection, weak crypto, path traversal — 25+ checks per language.</p>
+    <p>SQL injection, XSS, hardcoded secrets, command injection, weak crypto, path traversal — static rules that run instantly with no AI needed.</p>
   </div>
   <div class="feature">
     <div class="feature-icon">🧹</div>
-    <h3>SOLID Violations</h3>
-    <p>God classes, deep nesting, callback hell, boolean flags, chained ternaries, too many parameters.</p>
+    <h3>Code Quality & SOLID</h3>
+    <p>God classes, deep nesting, callback hell, boolean flags, chained ternaries, too many parameters, TypeScript any usage.</p>
   </div>
   <div class="feature">
     <div class="feature-icon">⚛️</div>
@@ -102,20 +117,52 @@
     <p>Rules of Hooks, async useEffect, state mutations, re-render traps, deprecated lifecycle methods — 30+ checks.</p>
   </div>
   <div class="feature">
-    <div class="feature-icon">🤖</div>
-    <h3>AI Analysis</h3>
-    <p>Deep semantic analysis catches logic bugs regex can't. Static rules instant, AI runs in background.</p>
+    <div class="feature-icon">🧠</div>
+    <h3>Understanding Doc</h3>
+    <p>Every symbol, a one-line AI summary, and its caller/callee relationships — structured context to onboard a human or give an LLM accurate codebase knowledge.</p>
   </div>
   <div class="feature">
-    <div class="feature-icon">🧠</div>
-    <h3>AI Context Generation</h3>
-    <p>AGENTS.md universal context file works with Claude Code, Cursor, ChatGPT, and Copilot automatically.</p>
+    <div class="feature-icon">✍️</div>
+    <h3>Auto-Comment</h3>
+    <p>Inserts JSDoc, Google-style docstrings, and Javadoc above uncommented functions across the workspace — with or without AI.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">🤖</div>
+    <h3>AI Analysis (Optional)</h3>
+    <p>Catches what patterns can't — logic errors, wrong algorithms, missing edge cases. Static rules run instantly on save; AI runs as a second pass when enabled. One-click Fix with AI (diff preview) and Explain this Issue. Off by default, nothing sent to a model unless you turn it on.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">📊</div>
+    <h3>Dashboard & Reports</h3>
+    <p>Sidebar dashboard scoped to file or workspace. Export codereach-issues.md and .json grouped by file and function for sharing or CI integration.</p>
+  </div>
+</div>
+
+<div class="taint-section">
+  <h2>🔬 Workspace Taint Analysis</h2>
+  <p>
+    Traces untrusted data from entry points across file boundaries to dangerous sinks —
+    for Python, Java, and JavaScript/TypeScript projects.
+  </p>
+  <div class="taint-grid">
+    <div class="taint-card">
+      <h4>Sources</h4>
+      <p>HTTP params, form fields, URL path params, CLI args, env vars — aiohttp, Flask, Django, FastAPI, Express, Next.js, Spring, JAX-RS, Servlet.</p>
+    </div>
+    <div class="taint-card">
+      <h4>Sinks</h4>
+      <p>SQL injection, XSS, command injection, SSTI, open redirect, deserialization, prototype pollution, path traversal, LDAP injection, XXE.</p>
+    </div>
+    <div class="taint-card">
+      <h4>Smart Filtering</h4>
+      <p>Sanitizer-aware, cross-file BFS propagation up to 4 hops. Skips static/, vendor/, *.min.js, target/, venv/, migrations/ automatically.</p>
+    </div>
   </div>
 </div>
 
 <div class="providers">
   <h2>Works with any AI — including free ones</h2>
-  <p>No API key required to get started. Add one later for deeper analysis.</p>
+  <p>No API key required to get started. Structural features work with zero AI.</p>
   <div class="provider-grid">
     <div class="provider">
       Ollama
@@ -141,7 +188,7 @@
 </div>
 
 <div class="footer">
-  <p>Codescape is open source — MIT License · Made by
+  <p>CodeReach is open source — MIT License · Made by
     <a href="https://github.com/SidRoy97" style="color: #a78bfa">SidRoy97</a>
   </p>
 </div>
