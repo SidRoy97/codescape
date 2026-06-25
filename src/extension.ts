@@ -122,7 +122,7 @@ function activateInternal(context: vscode.ExtensionContext): void {
   // --- Taint scanners ---
   // Phase 1: intra-file, on-demand.
   // Phase 2: cross-file via the code graph, on-demand.
-  const crossFileTaint = new CrossFileTaintScanner(parser, () => graphBuilder.getGraph());
+  const crossFileTaint = new CrossFileTaintScanner(parser, () => graphBuilder.getGraph(), graphBuilder);
 
   // Auto-comment generator — inserts JSDoc/docstrings above uncommented functions.
   const commentGenerator = new CommentGenerator(parser, ai);
@@ -490,9 +490,6 @@ function activateInternal(context: vscode.ExtensionContext): void {
           cancellable: true,
         },
         async (progress, token) => {
-          // Ensure the graph is built before scanning — Phase 2 needs edges.
-          await ensureGraph();
-
           let flows: Awaited<ReturnType<typeof crossFileTaint.scanWorkspace>>;
           try {
             flows = await crossFileTaint.scanWorkspace(progress, token);

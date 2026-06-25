@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { Node } from 'web-tree-sitter';
 import { CodeGraph, CodeNode } from '../graph/CodeGraphTypes';
+import { CodeGraphBuilder } from '../graph/CodeGraphBuilder';
 import { LanguageParser } from '../graph/LanguageParser';
 import { TaintScanner, SOURCE_PATTERNS, SANITIZERS } from './TaintScanner';
 import { Issue } from '../types';
@@ -53,6 +54,7 @@ export class CrossFileTaintScanner {
   constructor(
     private readonly parser: LanguageParser,
     private readonly getGraph: () => CodeGraph,
+    private readonly graphBuilder: CodeGraphBuilder,
   ) {
     this.phase1 = new TaintScanner(parser);
   }
@@ -64,20 +66,45 @@ export class CrossFileTaintScanner {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (!root) return [];
 
-    const graph = this.getGraph();
-    if (graph.nodes.length === 0) return [];
+    // Build the graph if it hasn't been built yet — the taint scan must
+    // never depend on the user having manually triggered graph export first.
+    let graph = this.getGraph();
+    if (graph.nodes.length === 0) {
+      progress.report({ message: 'building code graph…' });
+      graph = await this.graphBuilder.build();
+    }
 
-    // Skip static assets, vendor files and minified bundles — these are
-    // third-party code that generates noise and can't be fixed by the developer.
+    // Skip static assets, vendor files and minified bundles.
     const SKIP_PATTERNS = [
-      /[/\\]static[/\\]/,
-      /[/\\]vendor[/\\]/,
-      /[/\\]node_modules[/\\]/,
+      /[/\\\\]static[/\\\\]/,
+      /[/\\\\]vendor[/\\\\]/,
+      /[/\\\\]node_modules[/\\\\]/,
       /\.min\.[jt]s$/,
       /\.bundle\.[jt]s$/,
     ];
     const isSkipped = (f: string) => SKIP_PATTERNS.some(p => p.test(f));
-    const files = [...new Set(graph.nodes.map(n => n.file))].filter(f => !isSkipped(f));
+
+    // Phase 0: scan ALL workspace files for intra-file taint, regardless of
+    // whether the graph has an entry for them. This way taint is never
+    // invisible just because a file has no outgoing calls.
+    const supportedExts = /\.(js|jsx|ts|tsx|py|java)$/;
+    const allUris = await vscode.workspace.findFiles(
+      '**/*.{js,jsx,ts,tsx,py,java}',
+      '{**/node_modules/**,**/dist/**,**/out/**,**/static/**,**/vendor/**,**/*.min.js,**/*.bundle.js}',
+    );
+    const allFiles = allUris.map(u => {
+      const rel = vscode.workspace.asRelativePath(u);
+      return { uri: u, rel };
+    }).filter(f => !isSkipped(f.rel));
+
+    const graphFiles = [...new Set(graph.nodes.map(n => n.file))].filter(f => !isSkipped(f));
+    // Merge: use graph files + any additional files found by glob
+    const allRelFiles = [...new Set([
+      ...graphFiles,
+      ...allFiles.map(f => f.rel),
+    ])];
+
+    const files = allRelFiles;
     const flows: CrossFileTaintFlow[] = [];
 
     // ── Phase 1 pass: find all intra-file flows and record which functions
