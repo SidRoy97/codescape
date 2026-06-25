@@ -4,12 +4,12 @@ import { ResultStore } from '../ResultStore';
 import { FileAnalysisResult, IssueCategory, IssueSeverity } from '../types';
 
 // What the dashboard is currently showing: every analyzed file, or just one.
-type ViewScope = { kind: 'workspace' } | { kind: 'file'; uri: string };
+type ViewScope = { kind: 'workspace' } | { kind: 'file'; uri: string } | { kind: 'idle' };
 
 export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   static readonly viewId = 'codereach.dashboard';
   private view?: vscode.WebviewView;
-  private scope: ViewScope = { kind: 'workspace' };
+  private scope: ViewScope = { kind: 'idle' };
   private readonly disposables: vscode.Disposable[] = [];
 
   constructor(
@@ -103,7 +103,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
       if (allowed.has(msg.id)) {
         if (msg.id === 'codereach.analyzeFile') this.scopeToActiveFile();
         if (msg.id === 'codereach.analyzeWorkspace') this.scopeToWorkspace();
-        if (msg.id === 'codereach.clearIssues') this.scope = { kind: 'workspace' };
+        if (msg.id === 'codereach.clearIssues') this.scope = { kind: 'idle' };
         vscode.commands.executeCommand(msg.id);
       }
       return;
@@ -137,7 +137,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
   private scopedResults(): FileAnalysisResult[] {
     const all = this.store.getAll();
     if (this.scope.kind === 'file') {
-      const wanted = this.scope.uri;
+      const wanted = (this.scope as { kind: 'file'; uri: string }).uri;
       return all.filter(r => r.uri.toString() === wanted);
     }
     return all;
@@ -152,8 +152,10 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
       .get<boolean>('preciseRelationships', false);
 
     const scopeLabel = this.scope.kind === 'file'
-      ? `This file: ${path.basename(vscode.Uri.parse(this.scope.uri).fsPath)}`
-      : 'Whole workspace';
+      ? `This file: ${path.basename(vscode.Uri.parse((this.scope as any).uri).fsPath)}`
+      : this.scope.kind === 'workspace'
+      ? 'Whole workspace'
+      : 'Not yet analyzed';
 
     const fileCards = results
       .filter(r => r.issues.length > 0)
@@ -176,6 +178,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
 
     const hasIssues = summary.totalIssues > 0;
     const fileScopeActive = this.scope.kind === 'file';
+    const workspaceScopeActive = this.scope.kind === 'workspace';
 
     return /* html */`<!DOCTYPE html>
 <html lang="en">
@@ -289,7 +292,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
   <div class="group-title">Analyze</div>
   <div class="btn-row">
     <button class="btn ${fileScopeActive ? 'btn-primary' : ''}" data-cmd="codereach.analyzeFile"><span class="ic">⚡</span>This File</button>
-    <button class="btn ${!fileScopeActive ? 'btn-primary' : ''}" data-cmd="codereach.analyzeWorkspace"><span class="ic">📂</span>Workspace</button>
+    <button class="btn ${workspaceScopeActive ? 'btn-primary' : ''}" data-cmd="codereach.analyzeWorkspace"><span class="ic">📂</span>Workspace</button>
     <button class="btn" data-cmd="codereach.clearIssues"><span class="ic">🗑</span>Clear</button>
   </div>
 </div>
